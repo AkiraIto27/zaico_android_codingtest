@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">zaico codingtest</string>
+    <string name="first_fragment_label">在庫一覧</string>
+    <string name="second_fragment_label">在庫詳細</string>
+</resources>
