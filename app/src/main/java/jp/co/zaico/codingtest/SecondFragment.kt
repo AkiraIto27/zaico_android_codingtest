@@ -23,9 +23,9 @@ class SecondFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val inventoryId = arguments!!.getString("inventoryId")!!.toInt()
+        val inventoryId = requireNotNull(requireArguments().getString("inventoryId")).toInt()
 
-        val _viewModel = SecondViewModel(context!!)
+        val _viewModel = SecondViewModel(requireContext())
 
         val inventory = _viewModel.getInventory(inventoryId)
         initView(inventory)
