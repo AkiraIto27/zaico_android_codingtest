@@ -13,6 +13,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Inventory detail screen.
+ *
+ * 旧クラス名: `SecondFragment`
+ */
 class InventoryDetailFragment : Fragment() {
     private var _binding: FragmentInventoryDetailBinding? = null
 

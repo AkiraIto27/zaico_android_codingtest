@@ -23,6 +23,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Inventory list screen.
+ *
+ * 旧クラス名: `FirstFragment`
+ */
 class InventoryListFragment : Fragment() {
     private var _binding: FragmentInventoryListBinding? = null
     private lateinit var viewModel: InventoryListViewModel

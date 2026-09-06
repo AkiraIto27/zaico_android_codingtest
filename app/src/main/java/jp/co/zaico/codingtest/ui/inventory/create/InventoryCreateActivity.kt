@@ -6,6 +6,11 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import jp.co.zaico.codingtest.R
 
+/**
+ * Hosts the inventory creation form.
+ *
+ * 旧クラス名: `AddActivity`
+ */
 class InventoryCreateActivity : AppCompatActivity() {
 
     companion object {

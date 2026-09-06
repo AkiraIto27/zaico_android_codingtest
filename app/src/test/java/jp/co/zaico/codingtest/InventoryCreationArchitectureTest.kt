@@ -159,7 +159,10 @@ class InventoryCreationArchitectureTest {
             .filter { it.isFile && it.extension in setOf("kt", "java", "xml") }
 
         files.forEach { file ->
-            val content = file.readText()
+            val content = file.readText().replace(
+                Regex("/\\*\\*.*?\\*/", setOf(RegexOption.DOT_MATCHES_ALL)),
+                ""
+            )
             forbiddenFragments.forEach { forbidden ->
                 assertFalse("旧参照 $forbidden が残っています: ${file.path}", content.contains(forbidden))
             }

@@ -12,6 +12,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/**
+ * Owns title validation and inventory creation UI state.
+ *
+ * 旧クラス名: `AddViewModel`
+ */
 class InventoryCreateViewModel(
     private val inventoryCreator: InventoryCreator
 ) : ViewModel() {

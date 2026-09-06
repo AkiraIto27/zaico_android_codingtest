@@ -20,6 +20,11 @@ import jp.co.zaico.codingtest.ZaicoApplication
 import jp.co.zaico.codingtest.databinding.FragmentInventoryCreateBinding
 import kotlinx.coroutines.launch
 
+/**
+ * Inventory creation form and submission feedback.
+ *
+ * 旧クラス名: `AddFragment`
+ */
 class InventoryCreateFragment : Fragment() {
     private var binding: FragmentInventoryCreateBinding? = null
     private var completionHandled = false

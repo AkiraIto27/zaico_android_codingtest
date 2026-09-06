@@ -18,6 +18,11 @@ private object InventoryListDiffCallback : DiffUtil.ItemCallback<Inventory>() {
         oldItem == newItem
 }
 
+/**
+ * Renders inventory summaries and forwards item selections.
+ *
+ * 旧クラス名: `MyAdapter`
+ */
 class InventoryListAdapter(
     private val itemClickListener: OnItemClickListener
 ) : ListAdapter<Inventory, InventoryListAdapter.ViewHolder>(InventoryListDiffCallback) {
