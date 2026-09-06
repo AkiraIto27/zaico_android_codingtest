@@ -1,4 +1,4 @@
-package jp.co.zaico.codingtest.data.repository
+package jp.co.zaico.codingtest.domain.result
 
 sealed interface CreateInventoryResult {
     data class Success(val inventoryId: Long) : CreateInventoryResult

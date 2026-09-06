@@ -4,14 +4,20 @@ import android.app.Activity
 import android.view.View
 import android.widget.TextView
 import androidx.lifecycle.Lifecycle
+import dagger.hilt.android.testing.BindValue
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltTestApplication
+import dagger.hilt.android.testing.UninstallModules
+import jp.co.zaico.codingtest.di.RepositoryModule
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import jp.co.zaico.codingtest.R
-import jp.co.zaico.codingtest.ZaicoApplication
-import jp.co.zaico.codingtest.data.repository.CreateInventoryResult
-import jp.co.zaico.codingtest.data.repository.InventoryCreator
+import jp.co.zaico.codingtest.domain.inventory.InventoryCreator
+import jp.co.zaico.codingtest.domain.inventory.Inventory
+import jp.co.zaico.codingtest.domain.inventory.InventoryRepository
+import jp.co.zaico.codingtest.domain.result.CreateInventoryResult
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,14 +27,15 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import org.junit.After
+import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.Rule
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import org.robolectric.Robolectric
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.android.controller.ActivityController
 import org.robolectric.Shadows
 import org.robolectric.RobolectricTestRunner
@@ -36,11 +43,30 @@ import org.robolectric.shadows.ShadowToast
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
+@Config(application = HiltTestApplication::class)
+@dagger.hilt.android.testing.HiltAndroidTest
+@UninstallModules(RepositoryModule::class)
 class InventoryCreateFragmentUiTest {
 
-    @After
-    fun tearDown() {
-        (RuntimeEnvironment.getApplication() as ZaicoApplication).inventoryCreatorFactory = null
+    @get:Rule
+    val hiltRule = HiltAndroidRule(this)
+
+    @BindValue
+    @JvmField
+    val boundCreator: InventoryCreator = DelegatingInventoryCreator()
+
+    @BindValue
+    @JvmField
+    val boundInventoryRepository: InventoryRepository = object : InventoryRepository {
+        override suspend fun getInventories(): List<Inventory> = emptyList()
+
+        override suspend fun getInventory(inventoryId: Int): Inventory =
+            error("Inventory repository is not used by this test")
+    }
+
+    @Before
+    fun setUp() {
+        hiltRule.inject()
     }
 
     @Test
@@ -313,7 +339,6 @@ class InventoryCreateFragmentUiTest {
             return immediateResult ?: response.await()
         }
 
-        override fun close() = Unit
     }
 
     private class SequencedInventoryCreator(
@@ -327,7 +352,13 @@ class InventoryCreateFragmentUiTest {
             return results[resultIndex++]
         }
 
-        override fun close() = Unit
+    }
+
+    class DelegatingInventoryCreator : InventoryCreator {
+        var delegate: InventoryCreator = ControlledInventoryCreator()
+
+        override suspend fun createInventory(title: String): CreateInventoryResult =
+            delegate.createInventory(title)
     }
 
     private suspend fun withActivity(
@@ -346,15 +377,13 @@ class InventoryCreateFragmentUiTest {
     }
 
     private fun launchActivity(creator: InventoryCreator): ActivityController<InventoryCreateActivity> {
-        val application = RuntimeEnvironment.getApplication() as ZaicoApplication
-        application.inventoryCreatorFactory = { creator }
+        (boundCreator as DelegatingInventoryCreator).delegate = creator
         return Robolectric.buildActivity(InventoryCreateActivity::class.java).setup()
     }
 
     private fun destroyController(controller: ActivityController<InventoryCreateActivity>) {
         val activity = controller.get()
         if (!activity.isDestroyed) controller.destroy()
-        (RuntimeEnvironment.getApplication() as ZaicoApplication).inventoryCreatorFactory = null
     }
 
     private fun titleInput(activity: InventoryCreateActivity) =

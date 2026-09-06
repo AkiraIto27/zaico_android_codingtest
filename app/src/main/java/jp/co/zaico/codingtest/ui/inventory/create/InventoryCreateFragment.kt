@@ -11,12 +11,10 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import dagger.hilt.android.AndroidEntryPoint
 import jp.co.zaico.codingtest.R
-import jp.co.zaico.codingtest.ZaicoApplication
 import jp.co.zaico.codingtest.databinding.FragmentInventoryCreateBinding
 import kotlinx.coroutines.launch
 
@@ -25,22 +23,10 @@ import kotlinx.coroutines.launch
  *
  * 旧クラス名: `AddFragment`
  */
+@AndroidEntryPoint
 class InventoryCreateFragment : Fragment() {
     private var binding: FragmentInventoryCreateBinding? = null
-    private var completionHandled = false
-    private var emptyCompanyToastShown = false
-
-    private val viewModel: InventoryCreateViewModel by viewModels {
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                require(modelClass.isAssignableFrom(InventoryCreateViewModel::class.java))
-                val creator = (requireActivity().application as ZaicoApplication)
-                    .createInventoryCreator()
-                @Suppress("UNCHECKED_CAST")
-                return InventoryCreateViewModel(creator) as T
-            }
-        }
-    }
+    private val viewModel: InventoryCreateViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -59,12 +45,7 @@ class InventoryCreateFragment : Fragment() {
         currentBinding.submitButton.setOnClickListener { viewModel.submit() }
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    if (binding == null) return@collect
-                    updateView(state)
-                    handleRequestError(state.requestError)
-                    handleSubmissionSuccess(state.createdInventoryId)
-                }
+                viewModel.uiState.collect { state -> render(state) }
             }
         }
     }
@@ -74,7 +55,7 @@ class InventoryCreateFragment : Fragment() {
         super.onDestroyView()
     }
 
-    private fun updateView(state: InventoryCreateUiState) {
+    private fun render(state: InventoryCreateUiState) {
         val currentBinding = binding ?: return
         currentBinding.apply {
             val renderedTitle = titleEditText.text?.toString().orEmpty()
@@ -91,11 +72,23 @@ class InventoryCreateFragment : Fragment() {
             submitButton.isEnabled = !state.isSubmitting && state.createdInventoryId == null
             progressIndicator.isVisible = state.isSubmitting
         }
+
+        renderRequestError(state)
+        state.emptyCompanyToastNotificationId?.let { notificationId ->
+            Toast.makeText(requireContext(), R.string.company_list_empty, Toast.LENGTH_LONG).show()
+            viewModel.consumeEmptyCompanyToast(notificationId)
+        }
+        state.successNotificationId?.let { notificationId ->
+            Toast.makeText(requireContext(), R.string.inventory_create_success, Toast.LENGTH_SHORT).show()
+            requireActivity().setResult(Activity.RESULT_OK)
+            requireActivity().finish()
+            viewModel.consumeSuccessNotification(notificationId)
+        }
     }
 
-    private fun handleRequestError(error: InventoryCreateRequestError?) {
+    private fun renderRequestError(state: InventoryCreateUiState) {
         val currentBinding = binding ?: return
-        val errorMessage = when (error) {
+        val errorMessage = when (state.requestError) {
             InventoryCreateRequestError.Configuration -> R.string.inventory_create_configuration_error
             InventoryCreateRequestError.EmptyCompany -> R.string.company_list_empty
             InventoryCreateRequestError.Http -> R.string.inventory_create_api_error
@@ -103,21 +96,12 @@ class InventoryCreateFragment : Fragment() {
             InventoryCreateRequestError.Network -> R.string.inventory_create_network_error
             null -> null
         }
-        currentBinding.apply {
-            errorText.isVisible = errorMessage != null
-            if (errorMessage == null) errorText.text = "" else errorText.setText(errorMessage)
+        currentBinding.errorText.isVisible = errorMessage != null
+        if (errorMessage == null) {
+            currentBinding.errorText.text = ""
+        } else {
+            currentBinding.errorText.setText(errorMessage)
         }
-        if (error == InventoryCreateRequestError.EmptyCompany && !emptyCompanyToastShown) {
-            emptyCompanyToastShown = true
-            Toast.makeText(requireContext(), R.string.company_list_empty, Toast.LENGTH_LONG).show()
-        }
-    }
-
-    private fun handleSubmissionSuccess(inventoryId: Long?) {
-        if (inventoryId == null || completionHandled || binding == null) return
-        completionHandled = true
-        Toast.makeText(requireContext(), R.string.inventory_create_success, Toast.LENGTH_SHORT).show()
-        requireActivity().setResult(Activity.RESULT_OK)
-        requireActivity().finish()
+        state.requestErrorNotificationId?.let(viewModel::consumeRequestErrorNotification)
     }
 }

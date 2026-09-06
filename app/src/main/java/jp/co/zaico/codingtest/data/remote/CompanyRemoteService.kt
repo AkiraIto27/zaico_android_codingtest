@@ -15,8 +15,13 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import jp.co.zaico.codingtest.di.ApiBaseUrl
+import jp.co.zaico.codingtest.di.ApiToken
+import jp.co.zaico.codingtest.di.CompaniesPath
+import javax.inject.Inject
+import javax.inject.Singleton
 
-internal sealed interface CompanyRemoteResult {
+sealed interface CompanyRemoteResult {
     data class Success(val companies: List<CompanyRemoteCompany>) : CompanyRemoteResult
     data object Empty : CompanyRemoteResult
     data class HttpFailure(val statusCode: Int) : CompanyRemoteResult
@@ -27,7 +32,7 @@ internal sealed interface CompanyRemoteResult {
 /**
  * 拠点一覧をAPIから取得する責務を持つリモートサービス。
  */
-internal interface CompanyRemoteService {
+interface CompanyRemoteService {
     /**
      * APIから拠点一覧を取得する。
      *
@@ -36,11 +41,12 @@ internal interface CompanyRemoteService {
     suspend fun getCompanies(): CompanyRemoteResult
 }
 
-internal class KtorCompanyRemoteService(
+@Singleton
+class KtorCompanyRemoteService @Inject constructor(
     private val client: HttpClient,
-    baseUrl: String,
-    private val token: String,
-    private val companiesPath: String,
+    @ApiBaseUrl baseUrl: String,
+    @ApiToken private val token: String,
+    @CompaniesPath private val companiesPath: String,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) : CompanyRemoteService {
     private val normalizedBaseUrl = baseUrl.trimEnd('/')
@@ -86,4 +92,5 @@ internal class KtorCompanyRemoteService(
             DecodeFailure
         }
     }
+
 }

@@ -33,5 +33,8 @@ data class InventoryCreateUiState(
     val isSubmitting: Boolean = false,
     val titleError: InventoryCreateTitleError? = null,
     val requestError: InventoryCreateRequestError? = null,
-    val createdInventoryId: Long? = null
+    val createdInventoryId: Long? = null,
+    val requestErrorNotificationId: Long? = null,
+    val emptyCompanyToastNotificationId: Long? = null,
+    val successNotificationId: Long? = null
 )

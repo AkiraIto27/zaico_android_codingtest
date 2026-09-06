@@ -94,10 +94,9 @@ class InventoryCreationArchitectureTest {
         )
         assertTrue(fragmentSource.contains("viewModel.uiState.collect"))
         assertTrue(
-            activitySource.contains(
-                "startActivity(InventoryCreateActivity.createIntent(this))"
-            )
+            activitySource.contains("InventoryCreateActivity.createIntent(this)")
         )
+        assertTrue(activitySource.contains("registerForActivityResult"))
         assertTrue(manifest.contains(".ui.main.MainActivity"))
         assertTrue(manifest.contains(".ui.inventory.create.InventoryCreateActivity"))
         assertTrue(manifest.contains("android.intent.action.MAIN"))
@@ -146,7 +145,7 @@ class InventoryCreationArchitectureTest {
         val dataSourcePaths = listOf(
             "app/src/main/java/jp/co/zaico/codingtest/data/remote/InventoryRemoteService.kt",
             "app/src/main/java/jp/co/zaico/codingtest/data/remote/mapper/InventoryResponseMapper.kt",
-            "app/src/main/java/jp/co/zaico/codingtest/data/repository/KtorInventoryRepository.kt"
+            "app/src/main/java/jp/co/zaico/codingtest/data/repository/DefaultInventoryRepository.kt"
         )
         val dataInventoryType = "jp.co.zaico.codingtest.data." + "model.Inventory"
 
@@ -167,7 +166,7 @@ class InventoryCreationArchitectureTest {
             "app/src/main/java/jp/co/zaico/codingtest/data/remote/InventoryRemoteService.kt"
         )
         val creatorSource = source(
-            "app/src/main/java/jp/co/zaico/codingtest/data/repository/KtorInventoryCreator.kt"
+            "app/src/main/java/jp/co/zaico/codingtest/data/repository/DefaultInventoryCreator.kt"
         )
 
         assertTrue(remoteSource.contains("/api/v2/orgs/companies/"))
@@ -192,10 +191,10 @@ class InventoryCreationArchitectureTest {
         assertTrue(fragmentSource.contains("override fun onResume()"))
         assertTrue(fragmentSource.contains("viewLifecycleOwner.lifecycleScope"))
         assertTrue(fragmentSource.contains("override fun onDestroyView()"))
-        assertTrue(fragmentSource.contains("loadJob?.cancel()"))
-        assertTrue(fragmentSource.contains("adapter.submitList(inventories)"))
-        assertTrue(fragmentSource.contains("_binding?.recyclerView?.adapter = null"))
-        assertTrue(viewModelSource.contains("suspend fun getInventories()"))
+        assertTrue(fragmentSource.contains("adapter?.submitList(state.inventories)"))
+        assertTrue(fragmentSource.contains("binding?.recyclerView?.adapter = null"))
+        assertTrue(viewModelSource.contains("onScreenResumed()"))
+        assertTrue(viewModelSource.contains("viewModelScope"))
         assertTrue(viewModelSource.contains("InventoryRepository"))
         assertFalse(viewModelSource.contains("android.content.Context"))
         assertFalse(viewModelSource.contains("HttpClient"))
@@ -273,7 +272,7 @@ class InventoryCreationArchitectureTest {
         val buildScript = source("app/build.gradle.kts")
         val trackedApiResources = source("app/src/main/res/values/api.xml")
         val creatorSource = source(
-            "app/src/main/java/jp/co/zaico/codingtest/data/repository/KtorInventoryCreator.kt"
+            "app/src/main/java/jp/co/zaico/codingtest/data/repository/DefaultInventoryCreator.kt"
         )
         val createFragmentSource = source(
             "app/src/main/java/jp/co/zaico/codingtest/ui/inventory/create/InventoryCreateFragment.kt"

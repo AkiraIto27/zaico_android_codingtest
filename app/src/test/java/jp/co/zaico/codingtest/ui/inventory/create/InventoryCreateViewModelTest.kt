@@ -3,8 +3,8 @@ package jp.co.zaico.codingtest.ui.inventory.create
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
-import jp.co.zaico.codingtest.data.repository.CreateInventoryResult
-import jp.co.zaico.codingtest.data.repository.InventoryCreator
+import jp.co.zaico.codingtest.domain.inventory.InventoryCreator
+import jp.co.zaico.codingtest.domain.result.CreateInventoryResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -191,7 +191,7 @@ class InventoryCreateViewModelTest {
     }
 
     @Test
-    fun ViewModelを破棄した場合_処理をキャンセルしてCreatorを閉じる() = runMainDispatcherTest {
+    fun ViewModelを破棄した場合_処理をキャンセルしてCreatorを閉じない() = runMainDispatcherTest {
         val store = ViewModelStore()
         val creator = SuspendedInventoryCreator()
         val viewModel = ViewModelProvider(store, factoryFor(creator))[InventoryCreateViewModel::class.java]
@@ -203,7 +203,6 @@ class InventoryCreateViewModelTest {
         runCurrent()
 
         assertTrue(creator.cancelled.isCompleted)
-        assertEquals(1, creator.closeCount)
         assertFalse(viewModel.uiState.value.isSubmitting)
     }
 
@@ -217,7 +216,6 @@ class InventoryCreateViewModelTest {
             return result
         }
 
-        override fun close() = Unit
     }
 
     private class SequencedInventoryCreator(
@@ -231,7 +229,6 @@ class InventoryCreateViewModelTest {
             return results[index++]
         }
 
-        override fun close() = Unit
     }
 
     private class SuspendedInventoryCreator : InventoryCreator {
@@ -239,7 +236,6 @@ class InventoryCreateViewModelTest {
         val result = CompletableDeferred<CreateInventoryResult>()
         val cancelled = CompletableDeferred<Unit>()
         var callCount = 0
-        var closeCount = 0
 
         override suspend fun createInventory(title: String): CreateInventoryResult {
             callCount += 1
@@ -251,9 +247,6 @@ class InventoryCreateViewModelTest {
             }
         }
 
-        override fun close() {
-            closeCount += 1
-        }
     }
 
     private class CancellationInventoryCreator : InventoryCreator {
@@ -264,7 +257,6 @@ class InventoryCreateViewModelTest {
             throw CancellationException("synthetic cancellation")
         }
 
-        override fun close() = Unit
     }
 
     private fun factoryFor(creator: InventoryCreator) = object : ViewModelProvider.Factory {

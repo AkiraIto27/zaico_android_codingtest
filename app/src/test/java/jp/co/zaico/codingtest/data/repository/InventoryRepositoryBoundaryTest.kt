@@ -4,103 +4,113 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpStatusCode
-import jp.co.zaico.codingtest.domain.inventory.Inventory
 import jp.co.zaico.codingtest.data.remote.CompanyRemoteResult
 import jp.co.zaico.codingtest.data.remote.CompanyRemoteService
 import jp.co.zaico.codingtest.data.remote.InventoryRemoteService
+import jp.co.zaico.codingtest.data.remote.dto.CompanyRemoteCompany
+import jp.co.zaico.codingtest.domain.company.CompanyIdResult
+import jp.co.zaico.codingtest.domain.company.CompanyRepositoryException
+import jp.co.zaico.codingtest.domain.inventory.Inventory
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
-import kotlinx.coroutines.isActive
 import org.junit.Test
 import java.io.IOException
 
 class InventoryRepositoryBoundaryTest {
 
     @Test
-    fun 一覧取得の場合_会社IDをRemoteへ渡しclientを閉じる() = runTest {
+    fun 一覧取得の場合_会社IDをRemoteへ渡し共有clientを閉じない() = runTest {
         val client = testClient()
-        val remote = RecordingInventoryRemote()
-        val repository = repository(client, remote)
+        val remote = RecordingInventoryRemote(client)
+        val repository = repository(remote)
 
         assertEquals(listOf(Inventory(1, "Desk", "3")), repository.getInventories())
         assertEquals(listOf(123), remote.listCompanyIds)
-        assertFalse(client.coroutineContext.isActive)
+        assertTrue(client.coroutineContext.isActive)
+        client.close()
     }
 
     @Test
-    fun 詳細取得が成功した場合_会社IDと在庫IDをRemoteへ渡しclientを閉じる() = runTest {
+    fun 詳細取得が成功した場合_会社IDと在庫IDをRemoteへ渡し共有clientを閉じない() = runTest {
         val client = testClient()
-        val remote = RecordingInventoryRemote()
-        val repository = repository(client, remote)
+        val remote = RecordingInventoryRemote(client)
+        val repository = repository(remote)
 
         assertEquals(Inventory(77, "Shelf", "1"), repository.getInventory(77))
         assertEquals(listOf(123), remote.detailCompanyIds)
         assertEquals(listOf(77), remote.detailInventoryIds)
-        assertFalse(client.coroutineContext.isActive)
+        assertTrue(client.coroutineContext.isActive)
+        client.close()
     }
 
     @Test
-    fun 一覧取得でRemoteが通信失敗した場合_会社IDを渡しclientを閉じて例外を返す() = runTest {
+    fun 一覧取得でRemoteが通信失敗した場合_会社IDを渡し共有clientを閉じない() = runTest {
         val client = testClient()
-        val remote = RecordingInventoryRemote(listFailure = IOException("synthetic failure"))
-        val repository = repository(client, remote)
+        val remote = RecordingInventoryRemote(client, listFailure = IOException("synthetic failure"))
+        val repository = repository(remote)
 
         assertThrows<IOException> { repository.getInventories() }
         assertEquals(listOf(123), remote.listCompanyIds)
-        assertFalse(client.coroutineContext.isActive)
+        assertTrue(client.coroutineContext.isActive)
+        client.close()
     }
 
     @Test
-    fun 詳細取得でRemoteが通信失敗した場合_clientを閉じて例外を返す() = runTest {
+    fun 詳細取得でRemoteが通信失敗した場合_共有clientを閉じない() = runTest {
         val client = testClient()
-        val remote = RecordingInventoryRemote(detailFailure = IOException("synthetic failure"))
-        val repository = repository(client, remote)
+        val remote = RecordingInventoryRemote(client, detailFailure = IOException("synthetic failure"))
+        val repository = repository(remote)
 
         assertThrows<IOException> { repository.getInventory(77) }
         assertEquals(listOf(123), remote.detailCompanyIds)
         assertEquals(listOf(77), remote.detailInventoryIds)
-        assertFalse(client.coroutineContext.isActive)
+        assertTrue(client.coroutineContext.isActive)
+        client.close()
     }
 
     @Test
-    fun Remoteがキャンセルした場合_CancellationExceptionを再送出しclientを閉じる() = runTest {
+    fun Remoteがキャンセルした場合_CancellationExceptionを再送出し共有clientを閉じない() = runTest {
         val client = testClient()
-        val remote = RecordingInventoryRemote(detailFailure = CancellationException("cancelled"))
-        val repository = repository(client, remote)
+        val remote = RecordingInventoryRemote(client, detailFailure = CancellationException("cancelled"))
+        val repository = repository(remote)
 
         assertThrows<CancellationException> { repository.getInventory(77) }
         assertEquals(listOf(123), remote.detailCompanyIds)
         assertEquals(listOf(77), remote.detailInventoryIds)
-        assertFalse(client.coroutineContext.isActive)
+        assertTrue(client.coroutineContext.isActive)
+        client.close()
     }
 
     @Test
-    fun 一覧取得でRemoteがキャンセルした場合_CancellationExceptionを再送出しclientを閉じる() = runTest {
+    fun 一覧取得でRemoteがキャンセルした場合_CancellationExceptionを再送出し共有clientを閉じない() = runTest {
         val client = testClient()
-        val remote = RecordingInventoryRemote(listFailure = CancellationException("cancelled"))
-        val repository = repository(client, remote)
+        val remote = RecordingInventoryRemote(client, listFailure = CancellationException("cancelled"))
+        val repository = repository(remote)
 
         assertThrows<CancellationException> { repository.getInventories() }
         assertEquals(listOf(123), remote.listCompanyIds)
-        assertFalse(client.coroutineContext.isActive)
+        assertTrue(client.coroutineContext.isActive)
+        client.close()
     }
 
     @Test
     fun 会社取得が失敗した場合_Remoteを呼ばずCompanyRepositoryExceptionを返す() = runTest {
         val client = testClient()
-        val remote = RecordingInventoryRemote()
+        val remote = RecordingInventoryRemote(client)
         val companyRemote = object : CompanyRemoteService {
             override suspend fun getCompanies(): CompanyRemoteResult =
                 CompanyRemoteResult.HttpFailure(HttpStatusCode.ServiceUnavailable.value)
         }
-        val repository = KtorInventoryRepository(
-            companyRepository = CompanyRepository(companyRemote, token = "synthetic-test-token"),
-            clientFactory = { client },
-            remoteFactory = { remote }
+        val repository = DefaultInventoryRepository(
+            companyRepository = DefaultCompanyRepository(
+                remote = companyRemote,
+                token = "synthetic-test-token"
+            ),
+            remote = remote
         )
 
         val exception = assertThrows<CompanyRepositoryException> {
@@ -112,28 +122,24 @@ class InventoryRepositoryBoundaryTest {
         client.close()
     }
 
-    private fun repository(
-        client: HttpClient,
-        remote: RecordingInventoryRemote
-    ): KtorInventoryRepository = KtorInventoryRepository(
-        companyRepository = CompanyRepository(
-            remote = object : CompanyRemoteService {
-                override suspend fun getCompanies(): CompanyRemoteResult =
-                    CompanyRemoteResult.Success(
-                        companies = listOf(jp.co.zaico.codingtest.data.remote.dto.CompanyRemoteCompany(123))
-                    )
-            },
-            token = "synthetic-test-token"
-        ),
-        clientFactory = { client },
-        remoteFactory = { remote }
-    )
+    private fun repository(remote: RecordingInventoryRemote): DefaultInventoryRepository =
+        DefaultInventoryRepository(
+            companyRepository = DefaultCompanyRepository(
+                remote = object : CompanyRemoteService {
+                    override suspend fun getCompanies(): CompanyRemoteResult =
+                        CompanyRemoteResult.Success(listOf(CompanyRemoteCompany(123)))
+                },
+                token = "synthetic-test-token"
+            ),
+            remote = remote
+        )
 
     private fun testClient(): HttpClient = HttpClient(MockEngine {
         respond(content = "unused", status = HttpStatusCode.OK)
     })
 
     private class RecordingInventoryRemote(
+        val client: HttpClient,
         private val listFailure: Throwable? = null,
         private val detailFailure: Throwable? = null
     ) : InventoryRemoteService {

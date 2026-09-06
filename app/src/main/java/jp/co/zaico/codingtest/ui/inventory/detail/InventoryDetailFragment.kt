@@ -4,51 +4,66 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import jp.co.zaico.codingtest.ZaicoApplication
-import jp.co.zaico.codingtest.domain.inventory.Inventory
+import androidx.lifecycle.repeatOnLifecycle
+import dagger.hilt.android.AndroidEntryPoint
+import jp.co.zaico.codingtest.R
 import jp.co.zaico.codingtest.databinding.FragmentInventoryDetailBinding
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * 在庫詳細画面を表示するFragment。
  *
  * 旧クラス名: `SecondFragment`
  */
+@AndroidEntryPoint
 class InventoryDetailFragment : Fragment() {
-    private var _binding: FragmentInventoryDetailBinding? = null
+    private var binding: FragmentInventoryDetailBinding? = null
+    private val viewModel: InventoryDetailViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentInventoryDetailBinding.inflate(inflater, container, false)
-        return requireNotNull(_binding).root
+        binding = FragmentInventoryDetailBinding.inflate(inflater, container, false)
+        return requireNotNull(binding).root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val inventoryId = requireNotNull(requireArguments().getString("inventoryId")).toInt()
-        val viewModel = InventoryDetailViewModel(
-            (requireActivity().application as ZaicoApplication).createInventoryRepository()
-        )
         viewLifecycleOwner.lifecycleScope.launch {
-            val inventory = withContext(Dispatchers.IO) {
-                viewModel.getInventory(inventoryId)
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state -> render(state) }
             }
-            if (_binding != null) initView(inventory)
         }
     }
 
-    private fun initView(inventory: Inventory) {
-        requireNotNull(_binding).apply {
-            textViewId.text = inventory.id.toString()
-            textViewTitle.text = inventory.title
-            textViewQuantity.text = inventory.quantity
+    override fun onDestroyView() {
+        binding = null
+        super.onDestroyView()
+    }
+
+    private fun render(state: InventoryDetailUiState) {
+        state.inventory?.let { inventory ->
+            binding?.apply {
+                textViewId.text = inventory.id.toString()
+                textViewTitle.text = inventory.title
+                textViewQuantity.text = inventory.quantity
+            }
+        }
+        state.errorNotificationId?.let { notificationId ->
+            val message = if (state.error == InventoryDetailError.CompanyEmpty) {
+                R.string.company_list_empty
+            } else {
+                R.string.inventory_load_error
+            }
+            Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+            viewModel.consumeErrorNotification(notificationId)
         }
     }
 }
