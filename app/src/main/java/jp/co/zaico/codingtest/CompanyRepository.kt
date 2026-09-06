@@ -45,39 +45,39 @@ class CompanyRepository(
         if (token.isBlank()) {
             return@withLock CompanyIdResult.ConfigurationFailure
         }
-        val response = try {
-            client.get(normalizedBaseUrl + companiesPath) {
+        val body = try {
+            val response = client.get(normalizedBaseUrl + companiesPath) {
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (_: Exception) {
-            return@withLock CompanyIdResult.NetworkFailure
-        }
-        if (response.status != HttpStatusCode.OK) {
-            return@withLock CompanyIdResult.HttpFailure(response.status.value)
-        }
-        val body = try {
+            if (response.status != HttpStatusCode.OK) {
+                return@withLock CompanyIdResult.HttpFailure(response.status.value)
+            }
             response.bodyAsText()
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (_: Exception) {
             return@withLock CompanyIdResult.NetworkFailure
         }
-        return@withLock try {
+
+        val result = decodeCompanyId(body)
+        if (result is CompanyIdResult.Success || result == CompanyIdResult.Empty) {
+            cachedResult = result
+        }
+        return@withLock result
+    }
+
+    private fun decodeCompanyId(body: String): CompanyIdResult {
+        return try {
             val companies = json.parseToJsonElement(body)
                 .jsonObject["data"]?.jsonArray
-                ?: return@withLock CompanyIdResult.DecodeFailure
+                ?: return CompanyIdResult.DecodeFailure
             // サーバー側要件では拠点が最低1件存在するため、通常は空一覧を想定しない。
             // 今回の特別仕様として、拠点一覧APIが返す先頭要素のIDを使用する。
             // TODO: 先頭要素がWebで最後に登録した拠点になるか、APIの返却順を確認する。
             val companyId = companies.firstOrNull()?.jsonObject?.get("id")
                 ?.jsonPrimitive?.intOrNull
-                ?: run {
-                    cachedResult = CompanyIdResult.Empty
-                    return@withLock CompanyIdResult.Empty
-                }
-            CompanyIdResult.Success(companyId).also { cachedResult = it }
+                ?: return CompanyIdResult.Empty
+            CompanyIdResult.Success(companyId)
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (_: Exception) {
