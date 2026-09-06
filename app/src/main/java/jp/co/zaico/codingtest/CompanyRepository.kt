@@ -72,8 +72,7 @@ class CompanyRepository(
                 .jsonObject["data"]?.jsonArray
                 ?: return CompanyIdResult.DecodeFailure
             // サーバー側要件では拠点が最低1件存在するため、通常は空一覧を想定しない。
-            // 今回の特別仕様として、拠点一覧APIが返す先頭要素のIDを使用する。
-            // TODO: 先頭要素がWebで最後に登録した拠点になるか、APIの返却順を確認する。
+            // APIが返す先頭要素が新しく登録した拠点であるため、そのIDを使用する。
             val companyId = companies.firstOrNull()?.jsonObject?.get("id")
                 ?.jsonPrimitive?.intOrNull
                 ?: return CompanyIdResult.Empty
