@@ -16,7 +16,7 @@
         android:theme="@style/Theme.ZaicoCodingtest"
         tools:targetApi="31">
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.main.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.ZaicoCodingtest">
             <intent-filter>
@@ -26,7 +26,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".AddActivity"
+            android:name=".ui.inventory.create.InventoryCreateActivity"
             android:exported="false" />
     </application>
 
