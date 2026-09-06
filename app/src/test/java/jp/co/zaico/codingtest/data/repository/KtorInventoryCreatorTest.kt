@@ -17,7 +17,13 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.test.runTest
+import jp.co.zaico.codingtest.data.remote.CompanyRemoteResult
+import jp.co.zaico.codingtest.data.remote.CompanyRemoteService
+import jp.co.zaico.codingtest.data.remote.InventoryCreateRemoteResult
+import jp.co.zaico.codingtest.data.remote.InventoryCreateRemoteService
+import jp.co.zaico.codingtest.data.remote.dto.CompanyRemoteCompany
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -31,6 +37,45 @@ import java.util.concurrent.atomic.AtomicInteger
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class KtorInventoryCreatorTest {
+
+    @Test
+    fun 作成Remoteを差し替えた場合_注入したRemoteへ委譲する() = runTest {
+        val client = HttpClient(MockEngine { error("unused") })
+        var receivedCompanyId: Int? = null
+        var receivedTitle: String? = null
+        val companyRepository = CompanyRepository(
+            remote = object : CompanyRemoteService {
+                override suspend fun getCompanyId(): CompanyRemoteResult =
+                    CompanyRemoteResult.Success(listOf(CompanyRemoteCompany(321)))
+            },
+            token = "synthetic-test-token"
+        )
+        val createRemote = object : InventoryCreateRemoteService {
+            override suspend fun createInventory(
+                companyId: Int,
+                title: String
+            ): InventoryCreateRemoteResult {
+                receivedCompanyId = companyId
+                receivedTitle = title
+                return InventoryCreateRemoteResult.Success(987L)
+            }
+        }
+        val creator = KtorInventoryCreator(
+            client = client,
+            token = "synthetic-test-token",
+            companyRepository = companyRepository,
+            remote = createRemote
+        )
+
+        assertEquals(
+            CreateInventoryResult.Success(987L),
+            creator.createInventory("Injected inventory")
+        )
+        assertEquals(321, receivedCompanyId)
+        assertEquals("Injected inventory", receivedTitle)
+        creator.close()
+        assertFalse(client.coroutineContext.isActive)
+    }
 
     @Test
     fun 先頭の拠点IDで作成する場合_V2の認証付きtitleのみをPOSTする() = runTest {
@@ -217,10 +262,10 @@ class KtorInventoryCreatorTest {
     }
 
     @Test
-    fun 正常な拠点一覧に追加フィールドがある場合_先頭の拠点IDを取得する() = runTest {
+    fun 先頭拠点が正常で後続が不正でも_先頭の拠点IDを取得する() = runTest {
         val fixture = companyRepositoryFixture {
             respond(
-                content = """{"data":[{"id":123,"name":"Main","ignored":{"value":true}},{"id":999}]}""",
+                content = """{"data":[{"id":123,"name":"Main"},"malformed"]}""",
                 headers = jsonHeaders
             )
         }
@@ -467,16 +512,21 @@ class KtorInventoryCreatorTest {
                 else -> error("Unexpected method: ${request.method}")
             }
         })
+        val companyRepository = CompanyRepository(
+            client = client,
+            baseUrl = baseUrl,
+            token = token,
+            companiesPath = "/api/v2/orgs/companies.json"
+        )
         fixture = Fixture(
             creator = KtorInventoryCreator(
                 client = client,
-                baseUrl = baseUrl,
                 token = token,
-                companyRepository = CompanyRepository(
+                companyRepository = companyRepository,
+                remote = jp.co.zaico.codingtest.data.remote.KtorInventoryRemoteService(
                     client = client,
                     baseUrl = baseUrl,
-                    token = token,
-                    companiesPath = "/api/v2/orgs/companies.json"
+                    token = token
                 )
             ),
             client = client

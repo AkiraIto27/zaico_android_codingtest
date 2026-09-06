@@ -8,6 +8,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.URLProtocol
 import io.ktor.http.headersOf
+import jp.co.zaico.codingtest.data.model.Inventory
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -18,14 +19,23 @@ import java.io.IOException
 class InventoryRemoteServiceTest {
 
     @Test
-    fun 一覧の3種類のルート形式_Inventoryへ変換する() = runTest {
+    fun 一覧の3種類のルート形式_固定された全Inventoryを返す() = runTest {
         val cases = listOf(
-            """[{"id":1,"title":"Array","quantity":"1"}]""",
-            """{"data":[{"id":2,"title":"Data array","quantity":"2"}]}""",
-            """{"id":3,"title":"Single object","quantity":"3"}"""
+            """[{"id":1,"title":"Array first","quantity":"1"},{"id":2,"title":"Array second","quantity":null}]""" to
+                listOf(
+                    Inventory(1, "Array first", "1"),
+                    Inventory(2, "Array second", "")
+                ),
+            """{"data":[{"id":3,"title":"Data first","quantity":"4"},{"id":4,"title":"Data second","quantity":"5"}]}""" to
+                listOf(
+                    Inventory(3, "Data first", "4"),
+                    Inventory(4, "Data second", "5")
+                ),
+            """{"id":5,"title":"Single object","quantity":"6"}""" to
+                listOf(Inventory(5, "Single object", "6"))
         )
 
-        cases.forEach { body ->
+        cases.forEach { (body, expected) ->
             val client = HttpClient(MockEngine { request ->
                 assertEquals(URLProtocol.HTTPS, request.url.protocol)
                 assertEquals(
@@ -42,8 +52,7 @@ class InventoryRemoteServiceTest {
                     token = "synthetic-test-token"
                 ).getInventories(companyId = 123)
 
-                assertEquals(1, result.size)
-                assertEquals(body.substringAfter("\"id\":").substringBefore(",").toInt(), result.single().id)
+                assertEquals(expected, result)
             } finally {
                 client.close()
             }
@@ -72,9 +81,7 @@ class InventoryRemoteServiceTest {
                 token = "synthetic-test-token"
             ).getInventory(companyId = 123, inventoryId = 77)
 
-            assertEquals(77, result.id)
-            assertEquals("Shelf", result.title)
-            assertEquals("", result.quantity)
+            assertEquals(Inventory(77, "Shelf", ""), result)
         } finally {
             client.close()
         }

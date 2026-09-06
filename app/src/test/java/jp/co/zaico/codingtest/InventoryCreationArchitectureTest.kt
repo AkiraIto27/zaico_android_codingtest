@@ -60,6 +60,7 @@ class InventoryCreationArchitectureTest {
                 "android:contentDescription=\"@string/inventory_create_add\""
             )
         )
+        assertTrue(mainActivityLayout.contains("tools:context=\".ui.main.MainActivity\""))
         assertTrue(fragmentSource.contains("InventoryCreateViewModel"))
         assertTrue(fragmentSource.contains("viewLifecycleOwner.lifecycleScope"))
         assertTrue(fragmentSource.contains("InventoryCreateTitleError.Required"))
@@ -84,6 +85,26 @@ class InventoryCreationArchitectureTest {
         assertTrue(navigation.contains("action_inventory_detail_to_inventory_list"))
         assertTrue(listFragmentSource.contains("FragmentInventoryListBinding"))
         assertTrue(detailFragmentSource.contains("FragmentInventoryDetailBinding"))
+    }
+
+    @Test
+    fun MainActivityのtoolsコンテキスト_新しいパッケージを参照する() {
+        assertTrue(
+            source("app/src/main/res/layout/activity_main.xml")
+                .contains("tools:context=\".ui.main.MainActivity\"")
+        )
+    }
+
+    @Test
+    fun 会社選択ポリシーの境界_純KotlinでRemoteやAndroidへ依存しない() {
+        val policySource = source(
+            "app/src/main/java/jp/co/zaico/codingtest/domain/company/CompanySelectionPolicy.kt"
+        )
+
+        assertTrue(policySource.contains("object CompanySelectionPolicy"))
+        assertTrue(policySource.contains("fun selectFirst"))
+        assertFalse(policySource.contains("io.ktor"))
+        assertFalse(policySource.contains("android."))
     }
 
     @Test
@@ -114,15 +135,10 @@ class InventoryCreationArchitectureTest {
         val adapterSource = source(
             "app/src/main/java/jp/co/zaico/codingtest/ui/inventory/list/InventoryListAdapter.kt"
         )
-        val repositorySource = source(
-            "app/src/main/java/jp/co/zaico/codingtest/data/repository/KtorInventoryRepository.kt"
-        )
-
         assertTrue(fragmentSource.contains("override fun onResume()"))
         assertTrue(fragmentSource.contains("viewLifecycleOwner.lifecycleScope"))
         assertTrue(fragmentSource.contains("override fun onDestroyView()"))
         assertTrue(fragmentSource.contains("loadJob?.cancel()"))
-        assertTrue(fragmentSource.contains("withContext(Dispatchers.IO)"))
         assertTrue(fragmentSource.contains("adapter.submitList(inventories)"))
         assertTrue(fragmentSource.contains("_binding?.recyclerView?.adapter = null"))
         assertTrue(viewModelSource.contains("suspend fun getInventories()"))
@@ -132,7 +148,6 @@ class InventoryCreationArchitectureTest {
         assertFalse(viewModelSource.contains("Json"))
         assertTrue(adapterSource.contains("InventoryListDiffCallback"))
         assertTrue(adapterSource.contains("oldItem.id == newItem.id"))
-        assertTrue(repositorySource.contains("client.close()"))
     }
 
     @Test

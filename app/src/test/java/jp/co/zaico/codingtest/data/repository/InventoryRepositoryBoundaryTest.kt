@@ -32,12 +32,36 @@ class InventoryRepositoryBoundaryTest {
     }
 
     @Test
+    fun 詳細取得が成功した場合_会社IDと在庫IDをRemoteへ渡しclientを閉じる() = runTest {
+        val client = testClient()
+        val remote = RecordingInventoryRemote()
+        val repository = repository(client, remote)
+
+        assertEquals(Inventory(77, "Shelf", "1"), repository.getInventory(77))
+        assertEquals(listOf(123), remote.detailCompanyIds)
+        assertEquals(listOf(77), remote.detailInventoryIds)
+        assertFalse(client.coroutineContext.isActive)
+    }
+
+    @Test
+    fun 一覧取得でRemoteが通信失敗した場合_会社IDを渡しclientを閉じて例外を返す() = runTest {
+        val client = testClient()
+        val remote = RecordingInventoryRemote(listFailure = IOException("synthetic failure"))
+        val repository = repository(client, remote)
+
+        assertThrows<IOException> { repository.getInventories() }
+        assertEquals(listOf(123), remote.listCompanyIds)
+        assertFalse(client.coroutineContext.isActive)
+    }
+
+    @Test
     fun 詳細取得でRemoteが通信失敗した場合_clientを閉じて例外を返す() = runTest {
         val client = testClient()
         val remote = RecordingInventoryRemote(detailFailure = IOException("synthetic failure"))
         val repository = repository(client, remote)
 
         assertThrows<IOException> { repository.getInventory(77) }
+        assertEquals(listOf(123), remote.detailCompanyIds)
         assertEquals(listOf(77), remote.detailInventoryIds)
         assertFalse(client.coroutineContext.isActive)
     }
@@ -49,6 +73,19 @@ class InventoryRepositoryBoundaryTest {
         val repository = repository(client, remote)
 
         assertThrows<CancellationException> { repository.getInventory(77) }
+        assertEquals(listOf(123), remote.detailCompanyIds)
+        assertEquals(listOf(77), remote.detailInventoryIds)
+        assertFalse(client.coroutineContext.isActive)
+    }
+
+    @Test
+    fun 一覧取得でRemoteがキャンセルした場合_CancellationExceptionを再送出しclientを閉じる() = runTest {
+        val client = testClient()
+        val remote = RecordingInventoryRemote(listFailure = CancellationException("cancelled"))
+        val repository = repository(client, remote)
+
+        assertThrows<CancellationException> { repository.getInventories() }
+        assertEquals(listOf(123), remote.listCompanyIds)
         assertFalse(client.coroutineContext.isActive)
     }
 
@@ -82,7 +119,9 @@ class InventoryRepositoryBoundaryTest {
         companyRepository = CompanyRepository(
             remote = object : CompanyRemoteService {
                 override suspend fun getCompanyId(): CompanyRemoteResult =
-                    CompanyRemoteResult.Success(123)
+                    CompanyRemoteResult.Success(
+                        companies = listOf(jp.co.zaico.codingtest.data.remote.dto.CompanyRemoteCompany(123))
+                    )
             },
             token = "synthetic-test-token"
         ),

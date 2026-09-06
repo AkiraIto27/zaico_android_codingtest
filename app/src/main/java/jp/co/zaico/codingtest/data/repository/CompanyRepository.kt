@@ -4,6 +4,9 @@ import io.ktor.client.HttpClient
 import jp.co.zaico.codingtest.data.remote.CompanyRemoteResult
 import jp.co.zaico.codingtest.data.remote.CompanyRemoteService
 import jp.co.zaico.codingtest.data.remote.KtorCompanyRemoteService
+import jp.co.zaico.codingtest.domain.company.CompanyCandidate
+import jp.co.zaico.codingtest.domain.company.CompanySelectionPolicy
+import jp.co.zaico.codingtest.domain.company.CompanySelectionResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -36,6 +39,8 @@ class CompanyRepository internal constructor(
     )
 
     private val mutex = Mutex()
+    // プロセス内のみで取得結果を保持し、プロセス終了後の起動時に再取得する。
+    // アプリ内に拠点追加・切り替え機能がないため、起動中は自動更新しない。
     private var cachedResult: CompanyIdResult? = null
 
     suspend fun getCompanyId(): CompanyIdResult = mutex.withLock {
@@ -46,7 +51,14 @@ class CompanyRepository internal constructor(
 
         val result = try {
             when (val remoteResult = remote.getCompanyId()) {
-                is CompanyRemoteResult.Success -> CompanyIdResult.Success(remoteResult.companyId)
+                is CompanyRemoteResult.Success -> when (
+                    val selection = CompanySelectionPolicy.selectFirst(
+                        remoteResult.companies.map { CompanyCandidate(it.id) }
+                    )
+                ) {
+                    is CompanySelectionResult.Selected -> CompanyIdResult.Success(selection.companyId)
+                    CompanySelectionResult.Empty -> CompanyIdResult.Empty
+                }
                 CompanyRemoteResult.Empty -> CompanyIdResult.Empty
                 is CompanyRemoteResult.HttpFailure -> CompanyIdResult.HttpFailure(remoteResult.statusCode)
                 CompanyRemoteResult.DecodeFailure -> CompanyIdResult.DecodeFailure

@@ -21,13 +21,6 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 
-internal sealed interface InventoryCreateRemoteResult {
-    data class Success(val inventoryId: Long) : InventoryCreateRemoteResult
-    data class HttpFailure(val statusCode: Int) : InventoryCreateRemoteResult
-    data object DecodeFailure : InventoryCreateRemoteResult
-    data object NetworkFailure : InventoryCreateRemoteResult
-}
-
 internal interface InventoryRemoteService {
     suspend fun getInventories(companyId: Int): List<Inventory>
 
@@ -39,7 +32,7 @@ internal class KtorInventoryRemoteService(
     baseUrl: String,
     private val token: String,
     private val json: Json = Json { ignoreUnknownKeys = true }
-) : InventoryRemoteService {
+) : InventoryRemoteService, InventoryCreateRemoteService {
     private val normalizedBaseUrl = baseUrl.trimEnd('/')
 
     override suspend fun getInventories(companyId: Int): List<Inventory> {
@@ -65,7 +58,7 @@ internal class KtorInventoryRemoteService(
         return data.toInventory()
     }
 
-    suspend fun createInventory(
+    override suspend fun createInventory(
         companyId: Int,
         title: String
     ): InventoryCreateRemoteResult {
@@ -80,6 +73,8 @@ internal class KtorInventoryRemoteService(
         } catch (_: Exception) {
             return InventoryCreateRemoteResult.NetworkFailure
         }
+        // API V2仕様書では作成成功は201 Createdだが、200 OKと正常なdata.idが返ったため、両方を許可する。
+        // TODO: V2作成APIで200と201が返る条件、および仕様書との不一致をZAICOに確認する。
         if (response.status != HttpStatusCode.OK && response.status != HttpStatusCode.Created) {
             return InventoryCreateRemoteResult.HttpFailure(response.status.value)
         }
@@ -90,6 +85,8 @@ internal class KtorInventoryRemoteService(
         } catch (_: Exception) {
             return InventoryCreateRemoteResult.NetworkFailure
         }
+        // 同一タイトルでも再POSTすると別IDの在庫が作成されることを実測済み。
+        // 201が重複登録を示すという根拠はなく、作成POSTの自動再送は行わない。
         return try {
             InventoryCreateRemoteResult.Success(json.decodeCreateInventoryResponse(responseBody).dataId)
         } catch (_: SerializationException) {

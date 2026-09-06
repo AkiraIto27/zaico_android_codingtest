@@ -2,19 +2,15 @@ package jp.co.zaico.codingtest.data.repository
 
 import io.ktor.client.HttpClient
 import jp.co.zaico.codingtest.data.remote.InventoryCreateRemoteResult
-import jp.co.zaico.codingtest.data.remote.KtorInventoryRemoteService
+import jp.co.zaico.codingtest.data.remote.InventoryCreateRemoteService
 import kotlinx.coroutines.CancellationException
-import kotlinx.serialization.json.Json
 
-class KtorInventoryCreator(
+internal class KtorInventoryCreator(
     private val client: HttpClient,
-    baseUrl: String,
     private val token: String,
-    json: Json = Json { ignoreUnknownKeys = true },
-    private val companyRepository: CompanyRepository
+    private val companyRepository: CompanyRepository,
+    private val remote: InventoryCreateRemoteService
 ) : InventoryCreator {
-    private val remote = KtorInventoryRemoteService(client, baseUrl, token, json)
-
     override suspend fun createInventory(title: String): CreateInventoryResult {
         if (token.isBlank()) {
             return CreateInventoryResult.ConfigurationFailure

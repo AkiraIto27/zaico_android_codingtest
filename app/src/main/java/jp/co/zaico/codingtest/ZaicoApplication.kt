@@ -8,6 +8,8 @@ import jp.co.zaico.codingtest.data.repository.InventoryCreator
 import jp.co.zaico.codingtest.data.repository.InventoryRepository
 import jp.co.zaico.codingtest.data.repository.KtorInventoryCreator
 import jp.co.zaico.codingtest.data.repository.KtorInventoryRepository
+import jp.co.zaico.codingtest.data.remote.KtorInventoryRemoteService
+import kotlinx.serialization.json.Json
 
 class ZaicoApplication : Application() {
     lateinit var companyRepository: CompanyRepository
@@ -23,13 +25,19 @@ class ZaicoApplication : Application() {
             companyRepository = companyRepository
         )
 
-    internal fun createInventoryCreator(): InventoryCreator =
-        inventoryCreatorFactory?.invoke() ?: KtorInventoryCreator(
-            client = HttpClient(Android),
-            baseUrl = getString(R.string.api_endpoint),
-            token = getString(R.string.api_token),
-            companyRepository = companyRepository
+    internal fun createInventoryCreator(): InventoryCreator {
+        inventoryCreatorFactory?.let { return it.invoke() }
+        val client = HttpClient(Android)
+        val baseUrl = getString(R.string.api_endpoint)
+        val token = getString(R.string.api_token)
+        val json = Json { ignoreUnknownKeys = true }
+        return KtorInventoryCreator(
+            client = client,
+            token = token,
+            companyRepository = companyRepository,
+            remote = KtorInventoryRemoteService(client, baseUrl, token, json)
         )
+    }
 
     override fun onCreate() {
         super.onCreate()
