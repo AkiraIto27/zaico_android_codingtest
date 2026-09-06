@@ -59,6 +59,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:contentDescription="@string/add_submitting"
+        android:indeterminate="true"
         android:visibility="gone"
         app:indicatorSize="24dp"
         app:layout_constraintEnd_toEndOf="parent"

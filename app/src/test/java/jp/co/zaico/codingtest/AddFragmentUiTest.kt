@@ -65,6 +65,7 @@ class AddFragmentUiTest {
             assertFalse(titleInput(activity).isEnabled)
             assertFalse(submitButton(activity).isEnabled)
             assertTrue(progressIndicator(activity).visibility == View.VISIBLE)
+            assertTrue(progressIndicator(activity).isIndeterminate)
         }
     }
 
