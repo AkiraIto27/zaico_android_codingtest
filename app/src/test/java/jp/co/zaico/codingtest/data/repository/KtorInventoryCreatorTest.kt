@@ -24,6 +24,8 @@ import jp.co.zaico.codingtest.data.remote.CompanyRemoteService
 import jp.co.zaico.codingtest.data.remote.InventoryCreateRemoteResult
 import jp.co.zaico.codingtest.data.remote.InventoryCreateRemoteService
 import jp.co.zaico.codingtest.data.remote.dto.CompanyRemoteCompany
+import jp.co.zaico.codingtest.domain.company.CompanyIdResult
+import jp.co.zaico.codingtest.domain.company.CompanyRepository
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -43,7 +45,7 @@ class KtorInventoryCreatorTest {
         val client = HttpClient(MockEngine { error("unused") })
         var receivedCompanyId: Int? = null
         var receivedTitle: String? = null
-        val companyRepository = CompanyRepository(
+        val companyRepository = CompanyRepositoryImpl(
             remote = object : CompanyRemoteService {
                 override suspend fun getCompanies(): CompanyRemoteResult =
                     CompanyRemoteResult.Success(listOf(CompanyRemoteCompany(321)))
@@ -436,7 +438,7 @@ class KtorInventoryCreatorTest {
             releaseResponse.await()
             respond(content = """{"data":[{"id":123}]}""", headers = jsonHeaders)
         })
-        val repository = CompanyRepository(
+        val repository = CompanyRepositoryImpl(
             client = client,
             baseUrl = "https://web.zaico.co.jp/",
             token = "synthetic-test-token",
@@ -512,7 +514,7 @@ class KtorInventoryCreatorTest {
                 else -> error("Unexpected method: ${request.method}")
             }
         })
-        val companyRepository = CompanyRepository(
+        val companyRepository = CompanyRepositoryImpl(
             client = client,
             baseUrl = baseUrl,
             token = token,
@@ -556,7 +558,7 @@ class KtorInventoryCreatorTest {
             handler(request)
         })
         return CompanyRepositoryFixture(
-            repository = CompanyRepository(
+            repository = CompanyRepositoryImpl(
                 client = client,
                 baseUrl = "https://web.zaico.co.jp/",
                 token = "synthetic-test-token",

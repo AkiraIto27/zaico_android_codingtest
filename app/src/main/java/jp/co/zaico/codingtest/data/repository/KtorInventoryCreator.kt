@@ -3,6 +3,8 @@ package jp.co.zaico.codingtest.data.repository
 import io.ktor.client.HttpClient
 import jp.co.zaico.codingtest.data.remote.InventoryCreateRemoteResult
 import jp.co.zaico.codingtest.data.remote.InventoryCreateRemoteService
+import jp.co.zaico.codingtest.domain.company.CompanyIdResult
+import jp.co.zaico.codingtest.domain.company.CompanyRepository
 import kotlinx.coroutines.CancellationException
 
 internal class KtorInventoryCreator(

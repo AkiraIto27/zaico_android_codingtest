@@ -4,6 +4,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpStatusCode
+import jp.co.zaico.codingtest.domain.company.CompanyIdResult
+import jp.co.zaico.codingtest.domain.company.CompanyRepositoryException
 import jp.co.zaico.codingtest.domain.inventory.Inventory
 import jp.co.zaico.codingtest.data.remote.CompanyRemoteResult
 import jp.co.zaico.codingtest.data.remote.CompanyRemoteService
@@ -97,8 +99,8 @@ class InventoryRepositoryBoundaryTest {
             override suspend fun getCompanies(): CompanyRemoteResult =
                 CompanyRemoteResult.HttpFailure(HttpStatusCode.ServiceUnavailable.value)
         }
-        val repository = KtorInventoryRepository(
-            companyRepository = CompanyRepository(companyRemote, token = "synthetic-test-token"),
+        val repository = DefaultInventoryRepository(
+            companyRepository = CompanyRepositoryImpl(companyRemote, token = "synthetic-test-token"),
             clientFactory = { client },
             remoteFactory = { remote }
         )
@@ -115,8 +117,8 @@ class InventoryRepositoryBoundaryTest {
     private fun repository(
         client: HttpClient,
         remote: RecordingInventoryRemote
-    ): KtorInventoryRepository = KtorInventoryRepository(
-        companyRepository = CompanyRepository(
+    ): DefaultInventoryRepository = DefaultInventoryRepository(
+        companyRepository = CompanyRepositoryImpl(
             remote = object : CompanyRemoteService {
                 override suspend fun getCompanies(): CompanyRemoteResult =
                     CompanyRemoteResult.Success(

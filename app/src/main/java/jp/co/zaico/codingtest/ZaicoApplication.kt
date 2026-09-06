@@ -3,12 +3,13 @@ package jp.co.zaico.codingtest
 import android.app.Application
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
-import jp.co.zaico.codingtest.data.repository.CompanyRepository
+import jp.co.zaico.codingtest.data.repository.CompanyRepositoryImpl
 import jp.co.zaico.codingtest.data.repository.InventoryCreator
 import jp.co.zaico.codingtest.data.repository.KtorInventoryCreator
-import jp.co.zaico.codingtest.data.repository.KtorInventoryRepository
+import jp.co.zaico.codingtest.data.repository.DefaultInventoryRepository
 import jp.co.zaico.codingtest.data.remote.KtorInventoryRemoteService
 import jp.co.zaico.codingtest.domain.inventory.InventoryRepository
+import jp.co.zaico.codingtest.domain.company.CompanyRepository
 import kotlinx.serialization.json.Json
 
 class ZaicoApplication : Application() {
@@ -19,7 +20,7 @@ class ZaicoApplication : Application() {
     internal var inventoryRepositoryFactory: (() -> InventoryRepository)? = null
 
     internal fun createInventoryRepository(): InventoryRepository =
-        inventoryRepositoryFactory?.invoke() ?: KtorInventoryRepository(
+        inventoryRepositoryFactory?.invoke() ?: DefaultInventoryRepository(
             baseUrl = getString(R.string.api_endpoint),
             token = getString(R.string.api_token),
             companyRepository = companyRepository
@@ -41,7 +42,7 @@ class ZaicoApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        companyRepository = CompanyRepository(
+        companyRepository = CompanyRepositoryImpl(
             client = HttpClient(Android),
             baseUrl = getString(R.string.api_endpoint),
             token = getString(R.string.api_token),

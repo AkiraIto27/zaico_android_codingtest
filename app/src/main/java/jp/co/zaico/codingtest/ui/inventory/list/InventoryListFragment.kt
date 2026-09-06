@@ -14,8 +14,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import jp.co.zaico.codingtest.R
 import jp.co.zaico.codingtest.ZaicoApplication
 import jp.co.zaico.codingtest.domain.inventory.Inventory
-import jp.co.zaico.codingtest.data.repository.CompanyIdResult
-import jp.co.zaico.codingtest.data.repository.CompanyRepositoryException
+import jp.co.zaico.codingtest.domain.company.CompanyIdResult
+import jp.co.zaico.codingtest.domain.company.CompanyRepositoryException
 import jp.co.zaico.codingtest.databinding.FragmentInventoryListBinding
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers

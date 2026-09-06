@@ -146,7 +146,7 @@ class InventoryCreationArchitectureTest {
         val dataSourcePaths = listOf(
             "app/src/main/java/jp/co/zaico/codingtest/data/remote/InventoryRemoteService.kt",
             "app/src/main/java/jp/co/zaico/codingtest/data/remote/mapper/InventoryResponseMapper.kt",
-            "app/src/main/java/jp/co/zaico/codingtest/data/repository/KtorInventoryRepository.kt"
+            "app/src/main/java/jp/co/zaico/codingtest/data/repository/DefaultInventoryRepository.kt"
         )
         val dataInventoryType = "jp.co.zaico.codingtest.data." + "model.Inventory"
 
@@ -158,6 +158,44 @@ class InventoryCreationArchitectureTest {
         assertFalse(dataRepository.exists())
         dataSourcePaths.forEach { path ->
             assertFalse(source(path).contains(dataInventoryType))
+        }
+    }
+
+    @Test
+    fun 会社Repositoryの契約と実装配置を確認する_Domain契約とData実装に分離する() {
+        val domainRepository = source(
+            "app/src/main/java/jp/co/zaico/codingtest/domain/company/CompanyRepository.kt"
+        )
+        val domainResult = source(
+            "app/src/main/java/jp/co/zaico/codingtest/domain/company/CompanyIdResult.kt"
+        )
+        val domainException = source(
+            "app/src/main/java/jp/co/zaico/codingtest/domain/company/CompanyRepositoryException.kt"
+        )
+        val dataImplementation = source(
+            "app/src/main/java/jp/co/zaico/codingtest/data/repository/CompanyRepositoryImpl.kt"
+        )
+        val oldDataRepository = File(
+            repositoryRoot,
+            "app/src/main/java/jp/co/zaico/codingtest/data/repository/CompanyRepository.kt"
+        )
+
+        assertTrue(domainRepository.contains("package jp.co.zaico.codingtest.domain.company"))
+        assertTrue(domainRepository.contains("interface CompanyRepository"))
+        assertTrue(domainResult.contains("sealed interface CompanyIdResult"))
+        assertTrue(domainException.contains("class CompanyRepositoryException"))
+        assertTrue(dataImplementation.contains("class CompanyRepositoryImpl"))
+        assertTrue(dataImplementation.contains(") : CompanyRepository"))
+        assertTrue(
+            dataImplementation.contains(
+                "import jp.co.zaico.codingtest.domain.company.CompanyRepository"
+            )
+        )
+        assertFalse(oldDataRepository.exists())
+        listOf(domainRepository, domainResult, domainException).forEach { source ->
+            assertFalse(source.contains("jp.co.zaico.codingtest.data."))
+            assertFalse(source.contains("io.ktor"))
+            assertFalse(source.contains("android."))
         }
     }
 

@@ -5,6 +5,9 @@ import jp.co.zaico.codingtest.data.remote.CompanyRemoteResult
 import jp.co.zaico.codingtest.data.remote.CompanyRemoteService
 import jp.co.zaico.codingtest.data.remote.KtorCompanyRemoteService
 import jp.co.zaico.codingtest.domain.company.CompanyCandidate
+import jp.co.zaico.codingtest.domain.company.CompanyIdResult
+import jp.co.zaico.codingtest.domain.company.CompanyRepository
+import jp.co.zaico.codingtest.domain.company.CompanyRepositoryException
 import jp.co.zaico.codingtest.domain.company.CompanySelectionPolicy
 import jp.co.zaico.codingtest.domain.company.CompanySelectionResult
 import kotlinx.coroutines.CancellationException
@@ -12,21 +15,10 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 
-sealed interface CompanyIdResult {
-    data class Success(val companyId: Int) : CompanyIdResult
-    data object Empty : CompanyIdResult
-    data object ConfigurationFailure : CompanyIdResult
-    data class HttpFailure(val statusCode: Int) : CompanyIdResult
-    data object DecodeFailure : CompanyIdResult
-    data object NetworkFailure : CompanyIdResult
-}
-
-class CompanyRepositoryException(val result: CompanyIdResult) : Exception()
-
-class CompanyRepository internal constructor(
+class CompanyRepositoryImpl internal constructor(
     private val remote: CompanyRemoteService,
     private val token: String
-) {
+) : CompanyRepository {
     constructor(
         client: HttpClient,
         baseUrl: String,
@@ -43,7 +35,7 @@ class CompanyRepository internal constructor(
     // アプリ内に拠点追加・切り替え機能がないため、起動中は自動更新しない。
     private var cachedResult: CompanyIdResult? = null
 
-    suspend fun getCompanyId(): CompanyIdResult = mutex.withLock {
+    override suspend fun getCompanyId(): CompanyIdResult = mutex.withLock {
         cachedResult?.let { return@withLock it }
         if (token.isBlank()) {
             return@withLock CompanyIdResult.ConfigurationFailure
@@ -73,7 +65,7 @@ class CompanyRepository internal constructor(
         return@withLock result
     }
 
-    suspend fun requireCompanyId(): Int = when (val result = getCompanyId()) {
+    override suspend fun requireCompanyId(): Int = when (val result = getCompanyId()) {
         is CompanyIdResult.Success -> result.companyId
         else -> throw CompanyRepositoryException(result)
     }

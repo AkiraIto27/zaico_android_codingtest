@@ -4,11 +4,12 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import jp.co.zaico.codingtest.data.remote.InventoryRemoteService
 import jp.co.zaico.codingtest.data.remote.KtorInventoryRemoteService
+import jp.co.zaico.codingtest.domain.company.CompanyRepository
 import jp.co.zaico.codingtest.domain.inventory.Inventory
 import jp.co.zaico.codingtest.domain.inventory.InventoryRepository
 import kotlinx.serialization.json.Json
 
-class KtorInventoryRepository private constructor(
+class DefaultInventoryRepository private constructor(
     private val baseUrl: String,
     private val token: String,
     private val companyRepository: CompanyRepository,
