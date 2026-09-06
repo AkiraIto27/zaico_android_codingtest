@@ -6,7 +6,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.os.bundleOf
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -14,54 +16,99 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import jp.co.zaico.codingtest.databinding.FragmentFirstBinding
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class FirstFragment : Fragment() {
 
     private var _binding: FragmentFirstBinding? = null
+    private lateinit var viewModel: FirstViewModel
+    private lateinit var adapter: MyAdapter
+    private var loadJob: Job? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        _binding = FragmentFirstBinding.inflate(layoutInflater)
-        return _binding!!.root
+    ): View {
+        _binding = FragmentFirstBinding.inflate(inflater, container, false)
+        return requireNotNull(_binding).root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val _viewModel = FirstViewModel(context!!)
-
-        val _layoutManager = LinearLayoutManager(context!!)
-        val _dividerItemDecoration = DividerItemDecoration(
-            context!!,
-            _layoutManager.orientation
+        viewModel = FirstViewModel(
+            context = requireContext().applicationContext,
+            companyRepository = (requireActivity().application as ZaicoApplication).companyRepository
         )
-        val _adapter = MyAdapter(object : MyAdapter.OnItemClickListener {
+
+        val layoutManager = LinearLayoutManager(requireContext())
+        val dividerItemDecoration = DividerItemDecoration(
+            requireContext(),
+            layoutManager.orientation
+        )
+        adapter = MyAdapter(object : MyAdapter.OnItemClickListener {
             override fun itemClick(item: Inventory) {
                 val bundle = bundleOf("inventoryId" to item.id.toString())
                 findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment, bundle)
             }
         })
 
-        _binding!!.recyclerView.also {
-            it.layoutManager = _layoutManager
-            it.addItemDecoration(_dividerItemDecoration)
-            it.adapter = _adapter
+        requireNotNull(_binding).recyclerView.also {
+            it.layoutManager = layoutManager
+            it.addItemDecoration(dividerItemDecoration)
+            it.adapter = adapter
         }
-
-        _viewModel.getInventories().apply {
-            _adapter.submitList(this)
-        }
-
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (_binding == null || !::viewModel.isInitialized) return
+
+        loadJob?.cancel()
+        loadJob = viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val inventories = withContext(Dispatchers.IO) {
+                    viewModel.getInventories()
+                }
+                if (_binding != null) {
+                    adapter.submitList(inventories)
+                }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (empty: CompanyRepositoryException) {
+                val message = if (empty.result is CompanyIdResult.Empty) {
+                    R.string.company_list_empty
+                } else {
+                    R.string.inventory_load_error
+                }
+                context?.let {
+                    Toast.makeText(it, message, Toast.LENGTH_LONG).show()
+                }
+            } catch (_: Exception) {
+                context?.let {
+                    Toast.makeText(it, R.string.inventory_load_error, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    override fun onDestroyView() {
+        loadJob?.cancel()
+        loadJob = null
+        _binding?.recyclerView?.adapter = null
+        _binding = null
+        super.onDestroyView()
+    }
 }
 
 val diff_util= object: DiffUtil.ItemCallback<Inventory>(){
     override fun areItemsTheSame(oldItem: Inventory, newItem: Inventory): Boolean
     {
-        return oldItem.title== newItem.title
+        return oldItem.id == newItem.id
     }
 
     override fun areContentsTheSame(oldItem: Inventory, newItem: Inventory): Boolean

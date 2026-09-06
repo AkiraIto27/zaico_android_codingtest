@@ -2,58 +2,54 @@ package jp.co.zaico.codingtest
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
-import io.ktor.client.*
-import io.ktor.client.engine.android.*
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.serialization.kotlinx.json.json
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.runBlocking
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.android.Android
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+
+internal fun normalizeInventoryListRoot(root: JsonElement): JsonArray = when (root) {
+    is JsonArray -> root
+    is JsonObject -> root["data"]?.let { data ->
+        data as? JsonArray ?: throw IllegalArgumentException("Inventory list data is not an array")
+    } ?: JsonArray(listOf(root))
+    else -> throw IllegalArgumentException("Inventory list response has an unsupported root")
+}
 
 class FirstViewModel(
-    val context: Context
-): ViewModel() {
+    private val context: Context,
+    private val companyRepository: CompanyRepository
+) : ViewModel() {
 
-    // データ取得
-    fun getInventories() : List<Inventory> = runBlocking {
-
-        val client = HttpClient(Android) {
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
-        }
-
-        return@runBlocking GlobalScope.async {
-            val response: HttpResponse = client!!.get(
-                String.format("%s/api/v1/inventories", context.getString(R.string.api_endpoint))
+    suspend fun getInventories(): List<Inventory> {
+        val companyId = companyRepository.requireCompanyId()
+        val client = HttpClient(Android)
+        return try {
+            val response = client.get(
+                "${context.getString(R.string.api_endpoint).trimEnd('/')}/api/v2/orgs/companies/$companyId/inventories.json"
             ) {
-                header("Authorization", String.format("Bearer %s", context.getString(R.string.api_token)))
+                header(HttpHeaders.Authorization, "Bearer ${context.getString(R.string.api_token)}")
             }
-
-            val items = mutableListOf<Inventory>()
-
-            val jsonText = response.bodyAsText()
-            val jsonArray: JsonArray = Json.parseToJsonElement(jsonText).jsonArray
-            for (json in jsonArray) {
-                items.add(
-                    Inventory(
-                        id = json.jsonObject["id"].toString().replace(""""""", "").toInt(),
-                        title = json.jsonObject["title"].toString().replace(""""""", ""),
-                        quantity = json.jsonObject["quantity"].toString().replace(""""""", "")
-                    )
+            check(response.status == HttpStatusCode.OK) { "Inventory list request failed" }
+            normalizeInventoryListRoot(Json.parseToJsonElement(response.bodyAsText())).map { element ->
+                val item = element.jsonObject
+                Inventory(
+                    id = item.getValue("id").jsonPrimitive.int,
+                    title = item["title"]?.jsonPrimitive?.content.orEmpty(),
+                    quantity = item["quantity"]?.jsonPrimitive?.content.orEmpty()
                 )
             }
-
-            return@async items.toList()
-
-        }.await()
-
+        } finally {
+            client.close()
+        }
     }
-
 }

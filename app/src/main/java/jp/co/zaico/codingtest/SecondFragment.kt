@@ -5,7 +5,11 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.lifecycleScope
 import jp.co.zaico.codingtest.databinding.FragmentSecondBinding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SecondFragment : Fragment() {
 
@@ -23,12 +27,21 @@ class SecondFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val inventoryId = arguments!!.getString("inventoryId")!!.toInt()
+        val inventoryId = requireNotNull(requireArguments().getString("inventoryId")).toInt()
 
-        val _viewModel = SecondViewModel(context!!)
+        val _viewModel = SecondViewModel(
+            context = requireContext(),
+            companyRepository = (requireActivity().application as ZaicoApplication).companyRepository
+        )
 
-        val inventory = _viewModel.getInventory(inventoryId)
-        initView(inventory)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val inventory = withContext(Dispatchers.IO) {
+                _viewModel.getInventory(inventoryId)
+            }
+            if (_binding != null) {
+                initView(inventory)
+            }
+        }
 
     }
 

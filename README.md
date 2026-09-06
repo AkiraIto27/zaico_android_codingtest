@@ -21,6 +21,25 @@ zaicoのAPIを利用するためzaicoのアカウントを登録し、APIトー�
 
 [API利用に関するドキュメント](https://support.zaico.co.jp/hc/ja/articles/4406632009625-zaico-API%E3%82%92%E4%BD%BF%E3%81%A3%E3%81%A6%E5%9C%A8%E5%BA%AB%E3%83%87%E3%83%BC%E3%82%BF%E3%82%92%E6%93%8D%E4%BD%9C%E3%81%99%E3%82%8B)
 
+### APIトークンの設定
+
+APIトークンはソースコードへ記載せず、Git管理対象外の
+`local.properties` に次のキーで設定してください。
+
+```properties
+zaico.api.token=<your-api-token>
+```
+
+環境変数 `ZAICO_API_TOKEN` でも設定できます。環境変数が存在する場合は
+`local.properties` より優先されます。設定値はビルド時に
+`R.string.api_token` として生成され、ログには出力しません。未設定のままでも
+ビルドとテストは可能ですが、API呼び出しは設定エラーになります。
+
+この方法はトークンをGitや通常のログへ混入させないためのものです。Android
+アプリへ組み込まれた静的なトークンをAPK解析から保護するものではありません。
+配布アプリでその保護が必要な場合は、バックエンド経由の認証設計を使用して
+ください。
+
 ビルドしたアプリで動作確認をスムーズに行えるように、まずはzaicoから在庫登録してデータを作成してください。
 
 [在庫登録のドキュメント](https://support.zaico.co.jp/hc/ja/articles/9425011130265--WEB-%E5%9C%A8%E5%BA%AB%E3%83%87%E3%83%BC%E3%82%BF%E3%82%92%E7%99%BB%E9%8C%B2%E3%81%99%E3%82%8B)
