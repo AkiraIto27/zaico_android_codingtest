@@ -36,6 +36,8 @@ class SecondFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             val inventory = withContext(Dispatchers.IO) {
+                // TODO: 詳細画面の改善時に、通信・HTTP・解析失敗を画面のエラー表示へ変換する。
+                // CancellationExceptionは再送出し、未処理例外によるクラッシュを防止する。
                 _viewModel.getInventory(inventoryId)
             }
             if (_binding != null) {

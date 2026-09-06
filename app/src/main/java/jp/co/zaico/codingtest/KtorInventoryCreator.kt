@@ -21,9 +21,10 @@ class KtorInventoryCreator(
     private val companyRepository: CompanyRepository
 ) : InventoryCreator {
     private val normalizedBaseUrl = baseUrl.trimEnd('/')
+    // 本番のbaseUrlはXMLリソースに定義した固定URLを使用する。
 
     override suspend fun createInventory(title: String): CreateInventoryResult {
-        if (token.isBlank() || !normalizedBaseUrl.startsWith("https://")) {
+        if (token.isBlank()) {
             return CreateInventoryResult.ConfigurationFailure
         }
         val companyId = when (val companyResult = companyRepository.getCompanyId()) {

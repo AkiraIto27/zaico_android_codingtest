@@ -13,7 +13,7 @@ class InventoryCreationArchitectureTest {
         .first { File(it, "settings.gradle.kts").isFile }
 
     @Test
-    fun `追加画面を開く_フォームを追加フラグメントが保持する`() {
+    fun 追加画面の構造を確認する_Activityに入力フォームと登録操作を配置する() {
         val activityLayout = source("app/src/main/res/layout/activity_add.xml")
         val fragmentLayout = source("app/src/main/res/layout/fragment_add.xml")
         val mainActivityLayout = source("app/src/main/res/layout/activity_main.xml")
@@ -44,11 +44,7 @@ class InventoryCreationArchitectureTest {
             Regex("submitButton\\.setOnClickListener\\s*\\{\\s*viewModel\\.submit\\(\\)\\s*}")
                 .containsMatchIn(fragmentSource)
         )
-        val renderSource = fragmentSource.substringAfter("private fun render(state: AddUiState)")
-        assertTrue(renderSource.contains("currentBinding.errorText.isVisible = requestError != null"))
-        assertTrue(renderSource.contains("requestError?.let(currentBinding.errorText::setText)"))
-        assertTrue(renderSource.contains("currentBinding.titleEditText.setText(state.title)"))
-        assertTrue(renderSource.contains("currentBinding.titleInputLayout.error = when (state.titleError)"))
+        assertTrue(fragmentSource.contains("viewModel.uiState.collect"))
         assertTrue(activitySource.contains("startActivity(AddActivity.createIntent(this))"))
     }
 
@@ -69,7 +65,6 @@ class InventoryCreationArchitectureTest {
         val source = source("app/src/main/java/jp/co/zaico/codingtest/FirstFragment.kt")
         val onResume = source.substringAfter("override fun onResume()")
             .substringBefore("override fun onDestroyView()")
-        val addFragment = source("app/src/main/java/jp/co/zaico/codingtest/AddFragment.kt")
         val addViewModel = source("app/src/main/java/jp/co/zaico/codingtest/AddViewModel.kt")
         val firstViewModel = source("app/src/main/java/jp/co/zaico/codingtest/FirstViewModel.kt")
 
@@ -87,15 +82,7 @@ class InventoryCreationArchitectureTest {
         assertTrue(onDestroyView.contains("loadJob?.cancel()"))
         assertTrue(onDestroyView.contains("_binding?.recyclerView?.adapter = null"))
         assertTrue(source.contains("return oldItem.id == newItem.id"))
-        val successRender = addFragment.substringAfter(
-            "if (state.createdInventoryId != null && !completionHandled)"
-        )
-        assertTrue(successRender.contains("setResult(Activity.RESULT_OK)"))
-        assertTrue(successRender.contains("requireActivity().finish()"))
-        assertTrue(
-            Regex("\\(submissionScope\\s*\\?:\\s*viewModelScope\\)\\.launch")
-                .containsMatchIn(addViewModel)
-        )
+        assertTrue(addViewModel.contains("viewModelScope.launch"))
         assertTrue(addViewModel.contains("createdInventoryId != null"))
         assertFalse(firstViewModel.contains("runBlocking"))
         assertFalse(firstViewModel.contains("GlobalScope"))

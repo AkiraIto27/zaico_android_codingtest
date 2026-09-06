@@ -1,129 +1,212 @@
 package jp.co.zaico.codingtest
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.coroutines.coroutineContext
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AddViewModelTest {
 
     @Test
-    fun `空白または201文字のタイトル_作成処理を呼ばず入力エラーになる`() = runBlocking {
-        val creator = FakeInventoryCreator()
-        val viewModel = AddViewModel(creator, this)
+    fun 有効なタイトルを一度だけ送信した場合_成功IDを保持して送信中を解除する() = runMainDispatcherTest {
+        val creator = RecordingInventoryCreator(CreateInventoryResult.Success(42L))
+        val viewModel = AddViewModel(creator)
 
-        viewModel.updateTitle("   ")
+        viewModel.updateTitle("Valid inventory")
+        viewModel.submit()
+        runCurrent()
+
+        assertEquals(listOf("Valid inventory"), creator.titles)
+        assertEquals(42L, viewModel.uiState.value.createdInventoryId)
+        assertFalse(viewModel.uiState.value.isSubmitting)
+        assertNull(viewModel.uiState.value.requestError)
+    }
+
+    @Test
+    fun タイトルが200文字の場合_入力エラーにせず登録する() = runMainDispatcherTest {
+        val title = "x".repeat(200)
+        val creator = RecordingInventoryCreator(CreateInventoryResult.Success(1L))
+        val viewModel = AddViewModel(creator)
+
+        viewModel.updateTitle(title)
+        viewModel.submit()
+        runCurrent()
+
+        assertEquals(listOf(title), creator.titles)
+        assertNull(viewModel.uiState.value.titleError)
+        assertEquals(1L, viewModel.uiState.value.createdInventoryId)
+    }
+
+    @Test
+    fun タイトルの前後に空白がある場合_同じ文字列をCreatorへ渡す() = runMainDispatcherTest {
+        val title = "  Inventory with spaces  "
+        val creator = RecordingInventoryCreator(CreateInventoryResult.Success(2L))
+        val viewModel = AddViewModel(creator)
+
+        viewModel.updateTitle(title)
+        viewModel.submit()
+        runCurrent()
+
+        assertEquals(listOf(title), creator.titles)
+    }
+
+    @Test
+    fun 登録中に再度送信した場合_Creator呼び出しを一回にする() = runMainDispatcherTest {
+        val creator = SuspendedInventoryCreator()
+        val viewModel = AddViewModel(creator)
+        viewModel.updateTitle("Waiting inventory")
+
+        viewModel.submit()
+        assertTrue(creator.started.isCompleted)
+        assertTrue(viewModel.uiState.value.isSubmitting)
+
+        viewModel.submit()
+
+        assertEquals(1, creator.callCount)
+        assertTrue(viewModel.uiState.value.isSubmitting)
+        creator.result.complete(CreateInventoryResult.Success(7L))
+        runCurrent()
+
+        assertEquals(7L, viewModel.uiState.value.createdInventoryId)
+        assertFalse(viewModel.uiState.value.isSubmitting)
+    }
+
+    @Test
+    fun 成功後に再度送信した場合_Creatorを呼ばない() = runMainDispatcherTest {
+        val creator = RecordingInventoryCreator(CreateInventoryResult.Success(8L))
+        val viewModel = AddViewModel(creator)
+        viewModel.updateTitle("Completed inventory")
+
+        viewModel.submit()
+        runCurrent()
+        viewModel.submit()
+        runCurrent()
+
+        assertEquals(1, creator.titles.size)
+        assertEquals(8L, viewModel.uiState.value.createdInventoryId)
+    }
+
+    @Test
+    fun 空文字空白のみまたは201文字の場合_Creatorを呼ばず入力エラーにする() = runMainDispatcherTest {
+        val creator = RecordingInventoryCreator()
+        val viewModel = AddViewModel(creator)
+
+        viewModel.updateTitle("")
+        viewModel.submit()
+        assertEquals(AddTitleError.Required, viewModel.uiState.value.titleError)
+
+        viewModel.updateTitle(" \t\n")
         viewModel.submit()
         assertEquals(AddTitleError.Required, viewModel.uiState.value.titleError)
 
         viewModel.updateTitle("x".repeat(201))
         viewModel.submit()
         assertEquals(AddTitleError.TooLong, viewModel.uiState.value.titleError)
+
         assertTrue(creator.titles.isEmpty())
-    }
-
-    @Test
-    fun `200文字のタイトル_タイトルを変更せず受け付ける`() = runBlocking {
-        val title = "x".repeat(200)
-        val creator = FakeInventoryCreator(CreateInventoryResult.Success(91L))
-        val viewModel = AddViewModel(creator, this)
-        viewModel.updateTitle(title)
-
-        viewModel.submit()
-
-        assertEquals(listOf(title), creator.titles)
-        assertEquals(91L, viewModel.uiState.value.createdInventoryId)
-        assertNull(viewModel.uiState.value.titleError)
         assertFalse(viewModel.uiState.value.isSubmitting)
-        viewModel.submit()
-        assertEquals(1, creator.titles.size)
     }
 
     @Test
-    fun `送信中に再送する_最初のリクエストだけ実行する`() = runBlocking {
-        val creator = SuspendedInventoryCreator()
-        val viewModel = AddViewModel(creator, this)
-        viewModel.updateTitle("Inventory")
-
-        viewModel.submit()
-        withTimeout(1_000) { creator.started.await() }
-        viewModel.submit()
-
-        assertEquals(1, creator.callCount)
-        assertTrue(viewModel.uiState.value.isSubmitting)
-
-        creator.result.complete(CreateInventoryResult.Success(7L))
-        withTimeout(1_000) {
-            viewModel.uiState.first { it.createdInventoryId == 7L }
-        }
-        assertEquals(7L, viewModel.uiState.value.createdInventoryId)
-    }
-
-    @Test
-    fun `各種作成失敗_安全なUI状態に変換しタイトルを保持する`() = runBlocking {
-        val creator = FakeInventoryCreator(CreateInventoryResult.ConfigurationFailure)
-        val viewModel = AddViewModel(creator, this)
-        viewModel.updateTitle("Keep me")
-
-        viewModel.submit()
-
-        assertFailureState(viewModel, AddRequestError.Configuration)
-
-        creator.result = CreateInventoryResult.HttpFailure(406)
-        viewModel.submit()
-        assertFailureState(viewModel, AddRequestError.Http)
-
-        creator.result = CreateInventoryResult.DecodeFailure
-        viewModel.submit()
-        assertFailureState(viewModel, AddRequestError.InvalidResponse)
-
-        creator.result = CreateInventoryResult.NetworkFailure
-        viewModel.submit()
-        assertFailureState(viewModel, AddRequestError.Network)
-
-        creator.result = CreateInventoryResult.Success(55L)
-        viewModel.submit()
-        assertEquals(55L, viewModel.uiState.value.createdInventoryId)
-        assertNull(viewModel.uiState.value.requestError)
-        assertFalse(viewModel.uiState.value.isSubmitting)
-        assertEquals(5, creator.titles.size)
-    }
-
-    @Test
-    fun `キャンセル例外_失敗表示にせず送信中状態を解除する`() = runBlocking {
-        val viewModel = AddViewModel(
-            ThrowingInventoryCreator(CancellationException("cancelled")),
-            this
+    fun 各種失敗結果の場合_対応するUI状態へ変換してタイトルを保持する() = runMainDispatcherTest {
+        val failures = listOf(
+            CreateInventoryResult.ConfigurationFailure to AddRequestError.Configuration,
+            CreateInventoryResult.EmptyCompany to AddRequestError.EmptyCompany,
+            CreateInventoryResult.HttpFailure(406) to AddRequestError.Http,
+            CreateInventoryResult.DecodeFailure to AddRequestError.InvalidResponse,
+            CreateInventoryResult.NetworkFailure to AddRequestError.Network
         )
-        viewModel.updateTitle("Inventory")
 
-        viewModel.submit()
+        failures.forEach { (result, expectedError) ->
+            val creator = RecordingInventoryCreator(result)
+            val viewModel = AddViewModel(creator)
+            viewModel.updateTitle("Keep this title")
 
-        assertFalse(viewModel.uiState.value.isSubmitting)
-        assertNull(viewModel.uiState.value.requestError)
-        assertEquals("Inventory", viewModel.uiState.value.title)
+            viewModel.submit()
+            runCurrent()
+
+            assertEquals(expectedError, viewModel.uiState.value.requestError)
+            assertEquals("Keep this title", viewModel.uiState.value.title)
+            assertFalse(viewModel.uiState.value.isSubmitting)
+            assertNull(viewModel.uiState.value.createdInventoryId)
+            assertEquals(1, creator.titles.size)
+        }
     }
 
     @Test
-    fun `前後に空白があるタイトル_空白を保持して送信する`() = runBlocking {
-        val creator = FakeInventoryCreator(CreateInventoryResult.Success(3L))
-        val viewModel = AddViewModel(creator, this)
-        val title = "  New inventory  "
+    fun 失敗後に再送した場合_同じタイトルで成功する() = runMainDispatcherTest {
+        val creator = SequencedInventoryCreator(
+            CreateInventoryResult.NetworkFailure,
+            CreateInventoryResult.Success(73L)
+        )
+        val viewModel = AddViewModel(creator)
+        viewModel.updateTitle("Retry inventory")
 
-        viewModel.updateTitle(title)
         viewModel.submit()
+        runCurrent()
+        assertEquals(AddRequestError.Network, viewModel.uiState.value.requestError)
+        assertFalse(viewModel.uiState.value.isSubmitting)
 
-        assertEquals(listOf(title), creator.titles)
+        viewModel.submit()
+        runCurrent()
+
+        assertEquals(listOf("Retry inventory", "Retry inventory"), creator.titles)
+        assertEquals(73L, viewModel.uiState.value.createdInventoryId)
+        assertNull(viewModel.uiState.value.requestError)
     }
 
-    private class FakeInventoryCreator(
-        var result: CreateInventoryResult = CreateInventoryResult.Success(1L)
+    @Test
+    fun CancellationExceptionが発生した場合_通常エラーへ変換せず送信中を解除する() = runMainDispatcherTest {
+        val creator = CancellationInventoryCreator()
+        val viewModel = AddViewModel(creator)
+        viewModel.updateTitle("Cancelled inventory")
+
+        viewModel.submit()
+        runCurrent()
+
+        assertTrue(creator.completion.await() is CancellationException)
+        assertNull(viewModel.uiState.value.requestError)
+        assertNull(viewModel.uiState.value.createdInventoryId)
+        assertFalse(viewModel.uiState.value.isSubmitting)
+        assertEquals("Cancelled inventory", viewModel.uiState.value.title)
+    }
+
+    @Test
+    fun ViewModelを破棄した場合_処理をキャンセルしてCreatorを閉じる() = runMainDispatcherTest {
+        val store = ViewModelStore()
+        val creator = SuspendedInventoryCreator()
+        val viewModel = ViewModelProvider(store, factoryFor(creator))[AddViewModel::class.java]
+        viewModel.updateTitle("Destroy inventory")
+        viewModel.submit()
+
+        assertTrue(viewModel.uiState.value.isSubmitting)
+        store.clear()
+        runCurrent()
+
+        assertTrue(creator.cancelled.isCompleted)
+        assertEquals(1, creator.closeCount)
+        assertFalse(viewModel.uiState.value.isSubmitting)
+    }
+
+    private class RecordingInventoryCreator(
+        private val result: CreateInventoryResult = CreateInventoryResult.Success(1L)
     ) : InventoryCreator {
         val titles = mutableListOf<String>()
 
@@ -135,31 +218,68 @@ class AddViewModelTest {
         override fun close() = Unit
     }
 
-    private class SuspendedInventoryCreator : InventoryCreator {
-        val started = CompletableDeferred<Unit>()
-        val result = CompletableDeferred<CreateInventoryResult>()
-        var callCount = 0
+    private class SequencedInventoryCreator(
+        private vararg val results: CreateInventoryResult
+    ) : InventoryCreator {
+        val titles = mutableListOf<String>()
+        private var index = 0
 
         override suspend fun createInventory(title: String): CreateInventoryResult {
-            callCount += 1
-            started.complete(Unit)
-            return result.await()
+            titles += title
+            return results[index++]
         }
 
         override fun close() = Unit
     }
 
-    private class ThrowingInventoryCreator(
-        private val throwable: Throwable
-    ) : InventoryCreator {
-        override suspend fun createInventory(title: String): CreateInventoryResult = throw throwable
+    private class SuspendedInventoryCreator : InventoryCreator {
+        val started = CompletableDeferred<Unit>()
+        val result = CompletableDeferred<CreateInventoryResult>()
+        val cancelled = CompletableDeferred<Unit>()
+        var callCount = 0
+        var closeCount = 0
+
+        override suspend fun createInventory(title: String): CreateInventoryResult {
+            callCount += 1
+            started.complete(Unit)
+            return try {
+                result.await()
+            } finally {
+                cancelled.complete(Unit)
+            }
+        }
+
+        override fun close() {
+            closeCount += 1
+        }
+    }
+
+    private class CancellationInventoryCreator : InventoryCreator {
+        val completion = CompletableDeferred<Throwable?>()
+
+        override suspend fun createInventory(title: String): CreateInventoryResult {
+            coroutineContext[Job]?.invokeOnCompletion(completion::complete)
+            throw CancellationException("synthetic cancellation")
+        }
+
         override fun close() = Unit
     }
 
-    private fun assertFailureState(viewModel: AddViewModel, error: AddRequestError) {
-        assertEquals("Keep me", viewModel.uiState.value.title)
-        assertEquals(error, viewModel.uiState.value.requestError)
-        assertNull(viewModel.uiState.value.createdInventoryId)
-        assertFalse(viewModel.uiState.value.isSubmitting)
+    private fun factoryFor(creator: InventoryCreator) = object : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            require(modelClass.isAssignableFrom(AddViewModel::class.java))
+            @Suppress("UNCHECKED_CAST")
+            return AddViewModel(creator) as T
+        }
+    }
+
+    private fun runMainDispatcherTest(block: suspend TestScope.() -> Unit) {
+        val dispatcher = StandardTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        try {
+            runTest(dispatcher) { block() }
+        } finally {
+            Dispatchers.resetMain()
+        }
     }
 }

@@ -13,9 +13,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 internal fun normalizeInventoryListRoot(root: JsonElement): JsonArray = when (root) {
     is JsonArray -> root
@@ -40,14 +38,8 @@ class FirstViewModel(
                 header(HttpHeaders.Authorization, "Bearer ${context.getString(R.string.api_token)}")
             }
             check(response.status == HttpStatusCode.OK) { "Inventory list request failed" }
-            normalizeInventoryListRoot(Json.parseToJsonElement(response.bodyAsText())).map { element ->
-                val item = element.jsonObject
-                Inventory(
-                    id = item.getValue("id").jsonPrimitive.int,
-                    title = item["title"]?.jsonPrimitive?.content.orEmpty(),
-                    quantity = item["quantity"]?.jsonPrimitive?.content.orEmpty()
-                )
-            }
+            normalizeInventoryListRoot(Json.parseToJsonElement(response.bodyAsText()))
+                .map { it.jsonObject.toInventory() }
         } finally {
             client.close()
         }

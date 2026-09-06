@@ -10,9 +10,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 class SecondViewModel(
     private val context: Context,
@@ -30,11 +28,7 @@ class SecondViewModel(
             check(response.status == HttpStatusCode.OK) { "Inventory detail request failed" }
             val data = Json.parseToJsonElement(response.bodyAsText())
                 .jsonObject.getValue("data").jsonObject
-            Inventory(
-                id = data.getValue("id").jsonPrimitive.int,
-                title = data["title"]?.jsonPrimitive?.content.orEmpty(),
-                quantity = data["quantity"]?.jsonPrimitive?.content.orEmpty()
-            )
+            data.toInventory()
         } finally {
             client.close()
         }

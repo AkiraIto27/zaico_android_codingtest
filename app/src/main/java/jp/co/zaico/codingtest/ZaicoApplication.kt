@@ -8,6 +8,16 @@ class ZaicoApplication : Application() {
     lateinit var companyRepository: CompanyRepository
         private set
 
+    internal var inventoryCreatorFactory: (() -> InventoryCreator)? = null
+
+    internal fun createInventoryCreator(): InventoryCreator =
+        inventoryCreatorFactory?.invoke() ?: KtorInventoryCreator(
+            client = HttpClient(Android),
+            baseUrl = getString(R.string.api_endpoint),
+            token = getString(R.string.api_token),
+            companyRepository = companyRepository
+        )
+
     override fun onCreate() {
         super.onCreate()
         companyRepository = CompanyRepository(

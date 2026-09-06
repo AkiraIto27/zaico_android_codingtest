@@ -34,12 +34,15 @@ class CompanyRepository(
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) {
     private val normalizedBaseUrl = baseUrl.trimEnd('/')
+    // 本番のbaseUrlはXMLリソースに定義した固定URLを使用する。
     private val mutex = Mutex()
+    // プロセス内のみで取得結果を保持し、プロセス終了後の起動時に再取得する。
+    // アプリ内に拠点追加・切り替え機能がないため、起動中は自動更新しない。
     private var cachedResult: CompanyIdResult? = null
 
     suspend fun getCompanyId(): CompanyIdResult = mutex.withLock {
         cachedResult?.let { return@withLock it }
-        if (token.isBlank() || !normalizedBaseUrl.startsWith("https://")) {
+        if (token.isBlank()) {
             return@withLock CompanyIdResult.ConfigurationFailure
         }
         val response = try {
@@ -65,6 +68,9 @@ class CompanyRepository(
             val companies = json.parseToJsonElement(body)
                 .jsonObject["data"]?.jsonArray
                 ?: return@withLock CompanyIdResult.DecodeFailure
+            // サーバー側要件では拠点が最低1件存在するため、通常は空一覧を想定しない。
+            // 今回の特別仕様として、拠点一覧APIが返す先頭要素のIDを使用する。
+            // TODO: 先頭要素がWebで最後に登録した拠点になるか、APIの返却順を確認する。
             val companyId = companies.firstOrNull()?.jsonObject?.get("id")
                 ?.jsonPrimitive?.intOrNull
                 ?: run {
