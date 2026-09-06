@@ -8,10 +8,19 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
+import dagger.hilt.testing.TestInstallIn
+import dagger.hilt.components.SingletonComponent
 import jp.co.zaico.codingtest.R
-import jp.co.zaico.codingtest.ZaicoApplication
 import jp.co.zaico.codingtest.data.repository.CreateInventoryResult
 import jp.co.zaico.codingtest.data.repository.InventoryCreator
+import jp.co.zaico.codingtest.domain.company.CompanyIdResult
+import jp.co.zaico.codingtest.domain.company.CompanyRepository
+import jp.co.zaico.codingtest.domain.inventory.Inventory
+import jp.co.zaico.codingtest.domain.inventory.InventoryRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,26 +30,32 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.android.controller.ActivityController
 import org.robolectric.Shadows
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
+@Config(application = dagger.hilt.android.testing.HiltTestApplication::class)
+@HiltAndroidTest
+@Suppress("NonAsciiCharacters", "TestFunctionName")
 class InventoryCreateFragmentUiTest {
+
+    @get:org.junit.Rule
+    val hiltRule = HiltAndroidRule(this)
 
     @After
     fun tearDown() {
-        (RuntimeEnvironment.getApplication() as ZaicoApplication).inventoryCreatorFactory = null
+        InventoryCreateTestBindings.reset()
     }
 
     @Test
@@ -313,7 +328,6 @@ class InventoryCreateFragmentUiTest {
             return immediateResult ?: response.await()
         }
 
-        override fun close() = Unit
     }
 
     private class SequencedInventoryCreator(
@@ -327,7 +341,6 @@ class InventoryCreateFragmentUiTest {
             return results[resultIndex++]
         }
 
-        override fun close() = Unit
     }
 
     private suspend fun withActivity(
@@ -346,15 +359,14 @@ class InventoryCreateFragmentUiTest {
     }
 
     private fun launchActivity(creator: InventoryCreator): ActivityController<InventoryCreateActivity> {
-        val application = RuntimeEnvironment.getApplication() as ZaicoApplication
-        application.inventoryCreatorFactory = { creator }
+        InventoryCreateTestBindings.creator = creator
+        hiltRule.inject()
         return Robolectric.buildActivity(InventoryCreateActivity::class.java).setup()
     }
 
     private fun destroyController(controller: ActivityController<InventoryCreateActivity>) {
         val activity = controller.get()
         if (!activity.isDestroyed) controller.destroy()
-        (RuntimeEnvironment.getApplication() as ZaicoApplication).inventoryCreatorFactory = null
     }
 
     private fun titleInput(activity: InventoryCreateActivity) =
@@ -381,4 +393,50 @@ class InventoryCreateFragmentUiTest {
             Dispatchers.resetMain()
         }
     }
+}
+
+internal object InventoryCreateTestBindings {
+    var creator: InventoryCreator = NoOpInventoryCreator
+    var inventoryRepository: InventoryRepository = NoOpInventoryRepository
+    var companyRepository: CompanyRepository = NoOpCompanyRepository
+
+    fun reset() {
+        creator = NoOpInventoryCreator
+        inventoryRepository = NoOpInventoryRepository
+        companyRepository = NoOpCompanyRepository
+    }
+}
+
+private object NoOpInventoryCreator : InventoryCreator {
+    override suspend fun createInventory(title: String): CreateInventoryResult =
+        CreateInventoryResult.NetworkFailure
+}
+
+@Module
+@TestInstallIn(
+    components = [SingletonComponent::class],
+    replaces = [jp.co.zaico.codingtest.di.RepositoryModule::class]
+)
+object InventoryCreateTestModule {
+    @Provides
+    fun provideInventoryCreator(): InventoryCreator = InventoryCreateTestBindings.creator
+
+    @Provides
+    fun provideCompanyRepository(): CompanyRepository = InventoryCreateTestBindings.companyRepository
+
+    @Provides
+    fun provideInventoryRepository(): InventoryRepository = InventoryCreateTestBindings.inventoryRepository
+}
+
+private object NoOpCompanyRepository : CompanyRepository {
+    override suspend fun getCompanyId(): CompanyIdResult = CompanyIdResult.Empty
+
+    override suspend fun requireCompanyId(): Int = error("unused in fragment test")
+}
+
+private object NoOpInventoryRepository : InventoryRepository {
+    override suspend fun getInventories(): List<Inventory> = emptyList()
+
+    override suspend fun getInventory(inventoryId: Int): Inventory =
+        error("unused in fragment test")
 }

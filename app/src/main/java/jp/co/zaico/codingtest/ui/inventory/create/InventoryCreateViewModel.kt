@@ -1,6 +1,8 @@
 package jp.co.zaico.codingtest.ui.inventory.create
 
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import androidx.lifecycle.viewModelScope
 import jp.co.zaico.codingtest.data.repository.CreateInventoryResult
 import jp.co.zaico.codingtest.data.repository.InventoryCreator
@@ -17,7 +19,8 @@ import kotlinx.coroutines.launch
  *
  * 旧クラス名: `AddViewModel`
  */
-class InventoryCreateViewModel(
+@HiltViewModel
+class InventoryCreateViewModel @Inject constructor(
     private val inventoryCreator: InventoryCreator
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(InventoryCreateUiState())
@@ -86,11 +89,6 @@ class InventoryCreateViewModel(
         } finally {
             mutableUiState.update { it.copy(isSubmitting = false) }
         }
-    }
-
-    override fun onCleared() {
-        inventoryCreator.close()
-        super.onCleared()
     }
 
     private companion object {

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import dagger.hilt.android.AndroidEntryPoint
 import jp.co.zaico.codingtest.R
 
 /**
@@ -11,6 +12,7 @@ import jp.co.zaico.codingtest.R
  *
  * 旧クラス名: `AddActivity`
  */
+@AndroidEntryPoint
 class InventoryCreateActivity : AppCompatActivity() {
 
     companion object {

@@ -1,7 +1,5 @@
 package jp.co.zaico.codingtest.ui.inventory.create
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import jp.co.zaico.codingtest.data.repository.CreateInventoryResult
 import jp.co.zaico.codingtest.data.repository.InventoryCreator
@@ -24,6 +22,7 @@ import org.junit.Test
 import kotlin.coroutines.coroutineContext
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("NonAsciiCharacters", "TestFunctionName")
 class InventoryCreateViewModelTest {
 
     @Test
@@ -191,10 +190,11 @@ class InventoryCreateViewModelTest {
     }
 
     @Test
-    fun ViewModelを破棄した場合_処理をキャンセルしてCreatorを閉じる() = runMainDispatcherTest {
+    fun ViewModelを破棄した場合_処理をキャンセルして共有Creatorを別画面で再利用できる() = runMainDispatcherTest {
         val store = ViewModelStore()
         val creator = SuspendedInventoryCreator()
-        val viewModel = ViewModelProvider(store, factoryFor(creator))[InventoryCreateViewModel::class.java]
+        val viewModel = InventoryCreateViewModel(creator)
+        store.put("inventory-create", viewModel)
         viewModel.updateTitle("Destroy inventory")
         viewModel.submit()
 
@@ -203,8 +203,39 @@ class InventoryCreateViewModelTest {
         runCurrent()
 
         assertTrue(creator.cancelled.isCompleted)
-        assertEquals(1, creator.closeCount)
         assertFalse(viewModel.uiState.value.isSubmitting)
+
+        val nextViewModel = InventoryCreateViewModel(creator)
+        store.put("next-inventory-create", nextViewModel)
+        nextViewModel.updateTitle("Next inventory")
+        nextViewModel.submit()
+        creator.result.complete(CreateInventoryResult.Success(9L))
+        runCurrent()
+
+        assertEquals(2, creator.callCount)
+        assertEquals(9L, nextViewModel.uiState.value.createdInventoryId)
+        store.clear()
+    }
+
+    @Test
+    fun 成功後にタイトルを変更した場合_成功IDを解除して再送信できる() = runMainDispatcherTest {
+        val creator = SequencedInventoryCreator(
+            CreateInventoryResult.Success(8L),
+            CreateInventoryResult.Success(9L)
+        )
+        val viewModel = InventoryCreateViewModel(creator)
+        viewModel.updateTitle("First inventory")
+        viewModel.submit()
+        runCurrent()
+        assertEquals(8L, viewModel.uiState.value.createdInventoryId)
+
+        viewModel.updateTitle("Second inventory")
+        assertNull(viewModel.uiState.value.createdInventoryId)
+        viewModel.submit()
+        runCurrent()
+
+        assertEquals(listOf("First inventory", "Second inventory"), creator.titles)
+        assertEquals(9L, viewModel.uiState.value.createdInventoryId)
     }
 
     private class RecordingInventoryCreator(
@@ -217,7 +248,6 @@ class InventoryCreateViewModelTest {
             return result
         }
 
-        override fun close() = Unit
     }
 
     private class SequencedInventoryCreator(
@@ -231,7 +261,6 @@ class InventoryCreateViewModelTest {
             return results[index++]
         }
 
-        override fun close() = Unit
     }
 
     private class SuspendedInventoryCreator : InventoryCreator {
@@ -239,7 +268,6 @@ class InventoryCreateViewModelTest {
         val result = CompletableDeferred<CreateInventoryResult>()
         val cancelled = CompletableDeferred<Unit>()
         var callCount = 0
-        var closeCount = 0
 
         override suspend fun createInventory(title: String): CreateInventoryResult {
             callCount += 1
@@ -251,9 +279,6 @@ class InventoryCreateViewModelTest {
             }
         }
 
-        override fun close() {
-            closeCount += 1
-        }
     }
 
     private class CancellationInventoryCreator : InventoryCreator {
@@ -264,15 +289,6 @@ class InventoryCreateViewModelTest {
             throw CancellationException("synthetic cancellation")
         }
 
-        override fun close() = Unit
-    }
-
-    private fun factoryFor(creator: InventoryCreator) = object : ViewModelProvider.Factory {
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            require(modelClass.isAssignableFrom(InventoryCreateViewModel::class.java))
-            @Suppress("UNCHECKED_CAST")
-            return InventoryCreateViewModel(creator) as T
-        }
     }
 
     private fun runMainDispatcherTest(block: suspend TestScope.() -> Unit) {

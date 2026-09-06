@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import jp.co.zaico.codingtest.data.remote.CompanyRemoteResult
 import jp.co.zaico.codingtest.data.remote.CompanyRemoteService
 import jp.co.zaico.codingtest.data.remote.KtorCompanyRemoteService
+import jp.co.zaico.codingtest.di.ApiToken
 import jp.co.zaico.codingtest.domain.company.CompanyCandidate
 import jp.co.zaico.codingtest.domain.company.CompanyIdResult
 import jp.co.zaico.codingtest.domain.company.CompanyRepository
@@ -14,10 +15,18 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class CompanyRepositoryImpl internal constructor(
+/**
+ * 拠点一覧から利用する会社IDを解決するRepository実装。
+ *
+ * 旧クラス名: `CompanyRepository`
+ */
+@Singleton
+class CompanyRepositoryImpl @Inject internal constructor(
     private val remote: CompanyRemoteService,
-    private val token: String
+    @ApiToken private val token: String
 ) : CompanyRepository {
     constructor(
         client: HttpClient,

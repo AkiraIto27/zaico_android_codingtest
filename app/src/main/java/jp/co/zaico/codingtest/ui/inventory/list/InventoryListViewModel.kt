@@ -1,6 +1,8 @@
 package jp.co.zaico.codingtest.ui.inventory.list
 
 import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import jp.co.zaico.codingtest.domain.inventory.Inventory
 import jp.co.zaico.codingtest.domain.inventory.InventoryRepository
 
@@ -9,7 +11,8 @@ import jp.co.zaico.codingtest.domain.inventory.InventoryRepository
  *
  * 旧クラス名: `FirstViewModel`
  */
-class InventoryListViewModel(
+@HiltViewModel
+class InventoryListViewModel @Inject constructor(
     private val inventoryRepository: InventoryRepository
 ) : ViewModel() {
     suspend fun getInventories(): List<Inventory> = inventoryRepository.getInventories()

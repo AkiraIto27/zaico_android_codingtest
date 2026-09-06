@@ -5,8 +5,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import dagger.hilt.android.AndroidEntryPoint
 import androidx.lifecycle.lifecycleScope
-import jp.co.zaico.codingtest.ZaicoApplication
 import jp.co.zaico.codingtest.domain.inventory.Inventory
 import jp.co.zaico.codingtest.databinding.FragmentInventoryDetailBinding
 import kotlinx.coroutines.Dispatchers
@@ -18,24 +19,24 @@ import kotlinx.coroutines.withContext
  *
  * 旧クラス名: `SecondFragment`
  */
+@AndroidEntryPoint
 class InventoryDetailFragment : Fragment() {
     private var _binding: FragmentInventoryDetailBinding? = null
+    private val viewModel: InventoryDetailViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentInventoryDetailBinding.inflate(inflater, container, false)
-        return requireNotNull(_binding).root
+        val binding = FragmentInventoryDetailBinding.inflate(inflater, container, false)
+        _binding = binding
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val inventoryId = requireNotNull(requireArguments().getString("inventoryId")).toInt()
-        val viewModel = InventoryDetailViewModel(
-            (requireActivity().application as ZaicoApplication).createInventoryRepository()
-        )
         // TODO: 一覧表示後に通信が切れた状態で在庫をタップすると、取得失敗が未処理例外になる。
         //       例外を捕捉して画面へエラーを通知するなどの対応が必要。
         viewLifecycleOwner.lifecycleScope.launch {
@@ -46,8 +47,13 @@ class InventoryDetailFragment : Fragment() {
         }
     }
 
+    override fun onDestroyView() {
+        _binding = null
+        super.onDestroyView()
+    }
+
     private fun initView(inventory: Inventory) {
-        requireNotNull(_binding).apply {
+        _binding?.apply {
             textViewId.text = inventory.id.toString()
             textViewTitle.text = inventory.title
             textViewQuantity.text = inventory.quantity

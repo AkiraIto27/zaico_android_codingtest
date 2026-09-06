@@ -11,12 +11,10 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import dagger.hilt.android.AndroidEntryPoint
 import jp.co.zaico.codingtest.R
-import jp.co.zaico.codingtest.ZaicoApplication
 import jp.co.zaico.codingtest.databinding.FragmentInventoryCreateBinding
 import kotlinx.coroutines.launch
 
@@ -25,22 +23,12 @@ import kotlinx.coroutines.launch
  *
  * 旧クラス名: `AddFragment`
  */
+@AndroidEntryPoint
 class InventoryCreateFragment : Fragment() {
     private var binding: FragmentInventoryCreateBinding? = null
     private var completionHandled = false
     private var emptyCompanyToastShown = false
-
-    private val viewModel: InventoryCreateViewModel by viewModels {
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                require(modelClass.isAssignableFrom(InventoryCreateViewModel::class.java))
-                val creator = (requireActivity().application as ZaicoApplication)
-                    .createInventoryCreator()
-                @Suppress("UNCHECKED_CAST")
-                return InventoryCreateViewModel(creator) as T
-            }
-        }
-    }
+    private val viewModel: InventoryCreateViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,

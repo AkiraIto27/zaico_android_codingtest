@@ -5,6 +5,7 @@ import jp.co.zaico.codingtest.domain.company.CompanySelectionResult.Selected
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+@Suppress("NonAsciiCharacters", "TestFunctionName")
 class CompanySelectionPolicyTest {
 
     @Test
