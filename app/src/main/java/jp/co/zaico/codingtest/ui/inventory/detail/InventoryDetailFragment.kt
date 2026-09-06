@@ -36,6 +36,8 @@ class InventoryDetailFragment : Fragment() {
         val viewModel = InventoryDetailViewModel(
             (requireActivity().application as ZaicoApplication).createInventoryRepository()
         )
+        // TODO: 一覧表示後に通信が切れた状態で在庫をタップすると、取得失敗が未処理例外になる。
+        //       例外を捕捉して画面へエラーを通知するなどの対応が必要。
         viewLifecycleOwner.lifecycleScope.launch {
             val inventory = withContext(Dispatchers.IO) {
                 viewModel.getInventory(inventoryId)
