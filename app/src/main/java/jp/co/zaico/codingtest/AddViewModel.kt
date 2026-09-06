@@ -3,8 +3,6 @@ package jp.co.zaico.codingtest
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,8 +30,7 @@ data class AddUiState(
 )
 
 class AddViewModel(
-    private val inventoryCreator: InventoryCreator,
-    private val submissionScope: CoroutineScope? = null
+    private val inventoryCreator: InventoryCreator
 ) : ViewModel() {
 
     private val mutableUiState = MutableStateFlow(AddUiState())
@@ -71,7 +68,7 @@ class AddViewModel(
             it.copy(isSubmitting = true, titleError = null, requestError = null, createdInventoryId = null)
         }
 
-        (submissionScope ?: viewModelScope).launch(start = CoroutineStart.UNDISPATCHED) {
+        viewModelScope.launch {
             executeSubmission(currentState.title)
         }
     }

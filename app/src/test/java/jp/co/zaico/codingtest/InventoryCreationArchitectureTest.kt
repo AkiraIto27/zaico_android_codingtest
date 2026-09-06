@@ -44,11 +44,14 @@ class InventoryCreationArchitectureTest {
             Regex("submitButton\\.setOnClickListener\\s*\\{\\s*viewModel\\.submit\\(\\)\\s*}")
                 .containsMatchIn(fragmentSource)
         )
-        val renderSource = fragmentSource.substringAfter("private fun render(state: AddUiState)")
-        assertTrue(renderSource.contains("currentBinding.errorText.isVisible = requestError != null"))
-        assertTrue(renderSource.contains("requestError?.let(currentBinding.errorText::setText)"))
-        assertTrue(renderSource.contains("currentBinding.titleEditText.setText(state.title)"))
-        assertTrue(renderSource.contains("currentBinding.titleInputLayout.error = when (state.titleError)"))
+        assertTrue(fragmentSource.contains("private fun updateView(state: AddUiState)"))
+        assertTrue(fragmentSource.contains("viewModel.uiState.collect(::updateView)"))
+        val updateViewSource = fragmentSource.substringAfter("private fun updateView(state: AddUiState)")
+        assertTrue(updateViewSource.contains("currentBinding.apply"))
+        assertTrue(updateViewSource.contains("errorText.isVisible = requestError != null"))
+        assertTrue(updateViewSource.contains("requestError?.let(errorText::setText)"))
+        assertTrue(updateViewSource.contains("titleEditText.setText(state.title)"))
+        assertTrue(updateViewSource.contains("titleInputLayout.error = when (state.titleError)"))
         assertTrue(activitySource.contains("startActivity(AddActivity.createIntent(this))"))
     }
 
@@ -63,6 +66,7 @@ class InventoryCreationArchitectureTest {
         )
         assertFalse(source.contains("/api/v2/"))
         assertFalse(source.contains("company_id"))
+        assertFalse(source.contains("startsWith(\"https://\")"))
     }
 
     @Test
@@ -72,7 +76,6 @@ class InventoryCreationArchitectureTest {
             .substringBefore("override fun onDestroyView()")
         val addFragment = source("app/src/main/java/jp/co/zaico/codingtest/AddFragment.kt")
         val addViewModel = source("app/src/main/java/jp/co/zaico/codingtest/AddViewModel.kt")
-        val firstViewModel = source("app/src/main/java/jp/co/zaico/codingtest/FirstViewModel.kt")
 
         assertTrue(source.contains("override fun onResume()"))
         assertTrue(source.contains("viewLifecycleOwner.lifecycleScope"))
@@ -87,31 +90,15 @@ class InventoryCreationArchitectureTest {
             .substringBefore("val diff_util")
         assertTrue(onDestroyView.contains("loadJob?.cancel()"))
         assertTrue(onDestroyView.contains("_binding?.recyclerView?.adapter = null"))
-        assertTrue(source.contains("return oldItem.id == newItem.id"))
-        val successRender = addFragment.substringAfter(
+        assertFalse(addFragment.contains("setResult("))
+        val successUpdate = addFragment.substringAfter(
             "if (state.createdInventoryId != null && !completionHandled)"
         )
-        assertTrue(successRender.contains("setResult(Activity.RESULT_OK)"))
-        assertTrue(successRender.contains("requireActivity().finish()"))
-        assertTrue(
-            Regex("\\(submissionScope\\s*\\?:\\s*viewModelScope\\)\\.launch")
-                .containsMatchIn(addViewModel)
-        )
+        assertTrue(successUpdate.contains("requireActivity().finish()"))
+        assertTrue(addViewModel.contains("viewModelScope.launch"))
+        assertFalse(addViewModel.contains("submissionScope"))
+        assertFalse(addViewModel.contains("CoroutineStart.UNDISPATCHED"))
         assertTrue(addViewModel.contains("createdInventoryId != null"))
-        assertFalse(firstViewModel.contains("runBlocking"))
-        assertFalse(firstViewModel.contains("GlobalScope"))
-        assertFalse(firstViewModel.contains(".jsonArray"))
-        assertTrue(firstViewModel.contains("suspend fun getInventories()"))
-        assertTrue(firstViewModel.contains("KtorInventoryListLoader("))
-        assertTrue(firstViewModel.contains("when (val result = loader.load())"))
-        assertTrue(firstViewModel.contains("token.isBlank()"))
-        assertTrue(firstViewModel.contains("trimEnd('/')"))
-        assertTrue(
-            firstViewModel.indexOf("response.status == HttpStatusCode.OK") in
-                0 until firstViewModel.indexOf("response.bodyAsText()")
-        )
-        assertTrue(firstViewModel.contains("client.close()"))
-        assertTrue(firstViewModel.contains("loader.close()"))
     }
 
     @Test

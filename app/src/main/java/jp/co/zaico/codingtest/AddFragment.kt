@@ -1,6 +1,5 @@
 package jp.co.zaico.codingtest
 
-import android.app.Activity
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -52,18 +51,18 @@ class AddFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val currentBinding = requireNotNull(binding)
-
-        currentBinding.titleEditText.doAfterTextChanged {
-            viewModel.updateTitle(it?.toString().orEmpty())
-        }
-        currentBinding.submitButton.setOnClickListener {
-            viewModel.submit()
+        requireNotNull(binding).apply {
+            titleEditText.doAfterTextChanged {
+                viewModel.updateTitle(it?.toString().orEmpty())
+            }
+            submitButton.setOnClickListener {
+                viewModel.submit()
+            }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect(::render)
+                viewModel.uiState.collect(::updateView)
             }
         }
     }
@@ -73,37 +72,38 @@ class AddFragment : Fragment() {
         super.onDestroyView()
     }
 
-    private fun render(state: AddUiState) {
+    private fun updateView(state: AddUiState) {
         val currentBinding = binding ?: return
-        val renderedTitle = currentBinding.titleEditText.text?.toString().orEmpty()
-        if (renderedTitle != state.title) {
-            currentBinding.titleEditText.setText(state.title)
-            currentBinding.titleEditText.setSelection(state.title.length)
-        }
+        currentBinding.apply {
+            val renderedTitle = titleEditText.text?.toString().orEmpty()
+            if (renderedTitle != state.title) {
+                titleEditText.setText(state.title)
+                titleEditText.setSelection(state.title.length)
+            }
 
-        currentBinding.titleInputLayout.error = when (state.titleError) {
-            AddTitleError.Required -> getString(R.string.add_title_required)
-            AddTitleError.TooLong -> getString(R.string.add_title_too_long)
-            null -> null
-        }
-        val requestError = when (state.requestError) {
-            AddRequestError.Configuration -> R.string.add_configuration_error
-            AddRequestError.Http -> R.string.add_api_error
-            AddRequestError.InvalidResponse -> R.string.add_response_error
-            AddRequestError.Network -> R.string.add_network_error
-            null -> null
-        }
-        currentBinding.errorText.isVisible = requestError != null
-        requestError?.let(currentBinding.errorText::setText)
+            titleInputLayout.error = when (state.titleError) {
+                AddTitleError.Required -> getString(R.string.add_title_required)
+                AddTitleError.TooLong -> getString(R.string.add_title_too_long)
+                null -> null
+            }
+            val requestError = when (state.requestError) {
+                AddRequestError.Configuration -> R.string.add_configuration_error
+                AddRequestError.Http -> R.string.add_api_error
+                AddRequestError.InvalidResponse -> R.string.add_response_error
+                AddRequestError.Network -> R.string.add_network_error
+                null -> null
+            }
+            errorText.isVisible = requestError != null
+            requestError?.let(errorText::setText)
 
-        currentBinding.titleEditText.isEnabled = !state.isSubmitting
-        currentBinding.submitButton.isEnabled = !state.isSubmitting && state.createdInventoryId == null
-        currentBinding.progressIndicator.isVisible = state.isSubmitting
+            titleEditText.isEnabled = !state.isSubmitting
+            submitButton.isEnabled = !state.isSubmitting && state.createdInventoryId == null
+            progressIndicator.isVisible = state.isSubmitting
+        }
 
         if (state.createdInventoryId != null && !completionHandled) {
             completionHandled = true
             Toast.makeText(requireContext(), R.string.add_success, Toast.LENGTH_SHORT).show()
-            requireActivity().setResult(Activity.RESULT_OK)
             requireActivity().finish()
         }
     }

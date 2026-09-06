@@ -23,7 +23,7 @@ class KtorInventoryCreator(
     private val normalizedBaseUrl = baseUrl.trimEnd('/')
 
     override suspend fun createInventory(title: String): CreateInventoryResult {
-        if (token.isBlank() || !normalizedBaseUrl.startsWith("https://")) {
+        if (token.isBlank()) {
             return CreateInventoryResult.ConfigurationFailure
         }
 

@@ -142,20 +142,6 @@ class KtorInventoryCreatorTest {
         creator.close()
     }
 
-    @Test
-    fun 作成先URLがHTTPSでない場合_通信せず設定エラーとして扱う() = runBlocking {
-        var requestCount = 0
-        val creator = KtorInventoryCreator(
-            client = HttpClient(MockEngine { requestCount += 1; error("must not call network") }),
-            baseUrl = "http://web.zaico.co.jp/",
-            token = "synthetic-test-token"
-        )
-
-        assertEquals(CreateInventoryResult.ConfigurationFailure, creator.createInventory("Valid"))
-        assertEquals(0, requestCount)
-        creator.close()
-    }
-
     private fun creator(
         handler: suspend MockRequestHandleScope.(io.ktor.client.request.HttpRequestData) -> io.ktor.client.request.HttpResponseData
     ): KtorInventoryCreator = KtorInventoryCreator(

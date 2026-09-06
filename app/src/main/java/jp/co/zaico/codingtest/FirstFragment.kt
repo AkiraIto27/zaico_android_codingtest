@@ -32,20 +32,20 @@ class FirstFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentFirstBinding.inflate(inflater, container, false)
-        return requireNotNull(_binding).root
+    ): View? {
+        _binding = FragmentFirstBinding.inflate(layoutInflater)
+        return _binding!!.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        viewModel = FirstViewModel(requireContext().applicationContext)
+        viewModel = FirstViewModel(context!!)
 
-        val layoutManager = LinearLayoutManager(requireContext())
-        val dividerItemDecoration = DividerItemDecoration(
-            requireContext(),
-            layoutManager.orientation
+        val _layoutManager = LinearLayoutManager(context!!)
+        val _dividerItemDecoration = DividerItemDecoration(
+            context!!,
+            _layoutManager.orientation
         )
         adapter = MyAdapter(object : MyAdapter.OnItemClickListener {
             override fun itemClick(item: Inventory) {
@@ -54,11 +54,12 @@ class FirstFragment : Fragment() {
             }
         })
 
-        requireNotNull(_binding).recyclerView.also {
-            it.layoutManager = layoutManager
-            it.addItemDecoration(dividerItemDecoration)
+        _binding!!.recyclerView.also {
+            it.layoutManager = _layoutManager
+            it.addItemDecoration(_dividerItemDecoration)
             it.adapter = adapter
         }
+
     }
 
     override fun onResume() {
@@ -91,12 +92,13 @@ class FirstFragment : Fragment() {
         _binding = null
         super.onDestroyView()
     }
+
 }
 
 val diff_util= object: DiffUtil.ItemCallback<Inventory>(){
     override fun areItemsTheSame(oldItem: Inventory, newItem: Inventory): Boolean
     {
-        return oldItem.id == newItem.id
+        return oldItem.title== newItem.title
     }
 
     override fun areContentsTheSame(oldItem: Inventory, newItem: Inventory): Boolean
