@@ -13,8 +13,7 @@ class InventoryCreationArchitectureTest {
         .first { File(it, "settings.gradle.kts").isFile }
 
     @Test
-    @Acceptance("AC-001")
-    fun addActivityHostsAddFragmentAndFragmentOwnsTheSimpleForm() {
+    fun `追加画面を開く_フォームを追加フラグメントが保持する`() {
         val activityLayout = source("app/src/main/res/layout/activity_add.xml")
         val fragmentLayout = source("app/src/main/res/layout/fragment_add.xml")
         val mainActivityLayout = source("app/src/main/res/layout/activity_main.xml")
@@ -54,19 +53,19 @@ class InventoryCreationArchitectureTest {
     }
 
     @Test
-    @Acceptance("AC-002")
-    fun createEndpointUsesV2AndCompanyId() {
+    fun `V2作成APIと拠点ID_200と201を成功判定する`() {
         val source = source("app/src/main/java/jp/co/zaico/codingtest/KtorInventoryCreator.kt")
 
         assertTrue(source.contains("/api/v2/orgs/companies/"))
         assertTrue(source.contains("/inventories.json"))
         assertTrue(source.contains("companyRepository.getCompanyId()"))
+        assertTrue(source.contains("HttpStatusCode.OK"))
         assertTrue(source.contains("HttpStatusCode.Created"))
+        assertTrue(source.contains("API V2仕様書では作成成功は201 Created"))
     }
 
     @Test
-    @Acceptance("AC-004")
-    fun inventoryListReloadsFromResumeOffTheMainThread() {
+    fun `一覧画面を再開する_メインスレッド外で在庫一覧を再取得する`() {
         val source = source("app/src/main/java/jp/co/zaico/codingtest/FirstFragment.kt")
         val onResume = source.substringAfter("override fun onResume()")
             .substringBefore("override fun onDestroyView()")
@@ -105,8 +104,7 @@ class InventoryCreationArchitectureTest {
     }
 
     @Test
-    @Acceptance("AC-005", "AC-006")
-    fun tokenComesFromIgnoredConfigurationAndCreateClientDoesNotLog() {
+    fun `トークン設定と作成クライアント_ログ出力せず無視対象設定から取得する`() {
         val buildScript = source("app/build.gradle.kts")
         val trackedApiResources = source("app/src/main/res/values/api.xml")
         val creatorSource = source("app/src/main/java/jp/co/zaico/codingtest/KtorInventoryCreator.kt")

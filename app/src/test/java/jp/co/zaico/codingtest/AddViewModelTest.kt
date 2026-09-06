@@ -14,8 +14,7 @@ import org.junit.Test
 class AddViewModelTest {
 
     @Test
-    @Acceptance("AC-003")
-    fun submit_rejectsBlankAndOver200CharacterTitlesWithoutCallingCreator() = runBlocking {
+    fun `空白または201文字のタイトル_作成処理を呼ばず入力エラーになる`() = runBlocking {
         val creator = FakeInventoryCreator()
         val viewModel = AddViewModel(creator, this)
 
@@ -30,8 +29,7 @@ class AddViewModelTest {
     }
 
     @Test
-    @Acceptance("AC-002", "AC-003", "AC-004")
-    fun submit_accepts200CharactersWithoutChangingTheTitle() = runBlocking {
+    fun `200文字のタイトル_タイトルを変更せず受け付ける`() = runBlocking {
         val title = "x".repeat(200)
         val creator = FakeInventoryCreator(CreateInventoryResult.Success(91L))
         val viewModel = AddViewModel(creator, this)
@@ -48,8 +46,7 @@ class AddViewModelTest {
     }
 
     @Test
-    @Acceptance("AC-002")
-    fun submit_blocksASecondRequestWhileTheFirstIsInFlight() = runBlocking {
+    fun `送信中に再送する_最初のリクエストだけ実行する`() = runBlocking {
         val creator = SuspendedInventoryCreator()
         val viewModel = AddViewModel(creator, this)
         viewModel.updateTitle("Inventory")
@@ -69,8 +66,7 @@ class AddViewModelTest {
     }
 
     @Test
-    @Acceptance("AC-005", "AC-006")
-    fun submit_mapsFailuresToSafeUiStateAndRetainsTitleForRetry() = runBlocking {
+    fun `各種作成失敗_安全なUI状態に変換しタイトルを保持する`() = runBlocking {
         val creator = FakeInventoryCreator(CreateInventoryResult.ConfigurationFailure)
         val viewModel = AddViewModel(creator, this)
         viewModel.updateTitle("Keep me")
@@ -100,8 +96,7 @@ class AddViewModelTest {
     }
 
     @Test
-    @Acceptance("AC-005")
-    fun submit_doesNotTurnCancellationIntoFailureAndResetsSubmittingState() = runBlocking {
+    fun `キャンセル例外_失敗表示にせず送信中状態を解除する`() = runBlocking {
         val viewModel = AddViewModel(
             ThrowingInventoryCreator(CancellationException("cancelled")),
             this
@@ -116,8 +111,7 @@ class AddViewModelTest {
     }
 
     @Test
-    @Acceptance("AC-002")
-    fun submit_preservesSurroundingWhitespace() = runBlocking {
+    fun `前後に空白があるタイトル_空白を保持して送信する`() = runBlocking {
         val creator = FakeInventoryCreator(CreateInventoryResult.Success(3L))
         val viewModel = AddViewModel(creator, this)
         val title = "  New inventory  "

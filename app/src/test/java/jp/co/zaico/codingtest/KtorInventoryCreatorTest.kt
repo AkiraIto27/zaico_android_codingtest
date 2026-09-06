@@ -26,9 +26,14 @@ import java.io.IOException
 class KtorInventoryCreatorTest {
 
     @Test
-    @Acceptance("AC-002", "AC-004", "AC-006")
-    fun createInventory_postsTheExactV2ContractAndDecodesDataId() = runBlocking {
+    fun `200と正常なdata_id_在庫作成が成功する`() = assertSuccessfulCreate(HttpStatusCode.OK)
+
+    @Test
+    fun `201と正常なdata_id_在庫作成が成功する`() = assertSuccessfulCreate(HttpStatusCode.Created)
+
+    private fun assertSuccessfulCreate(successStatus: HttpStatusCode) = runBlocking {
         var requestCount = 0
+        var postRequestCount = 0
         val engine = MockEngine { request ->
             requestCount += 1
             assertEquals(URLProtocol.HTTPS, request.url.protocol)
@@ -47,6 +52,7 @@ class KtorInventoryCreatorTest {
             }
 
             assertEquals(HttpMethod.Post, request.method)
+            postRequestCount += 1
             assertEquals("/api/v2/orgs/companies/123/inventories.json", request.url.encodedPath)
             assertEquals(ContentType.Application.Json, request.body.contentType)
 
@@ -58,7 +64,7 @@ class KtorInventoryCreatorTest {
 
             respond(
                 content = """{"data":{"id":42}}""",
-                status = HttpStatusCode.Created,
+                status = successStatus,
                 headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             )
         }
@@ -79,13 +85,19 @@ class KtorInventoryCreatorTest {
 
         assertEquals(CreateInventoryResult.Success(42L), result)
         assertEquals(2, requestCount)
+        assertEquals(1, postRequestCount)
         creator.close()
     }
 
     @Test
-    @Acceptance("AC-005")
-    fun createInventory_mapsDocumentedAndUnexpectedHttpErrorsWithoutRetrying() = runBlocking {
-        listOf(HttpStatusCode.BadRequest, HttpStatusCode.NotAcceptable, HttpStatusCode.InternalServerError)
+    fun `200と201以外のHTTP応答_在庫作成がHTTP失敗になり再送しない`() = runBlocking {
+        listOf(
+            HttpStatusCode.NoContent,
+            HttpStatusCode.BadRequest,
+            HttpStatusCode.Unauthorized,
+            HttpStatusCode.Forbidden,
+            HttpStatusCode.InternalServerError
+        )
             .forEach { status ->
                 var requestCount = 0
                 val creator = creator { requestCount += 1; respond("sensitive body", status) }
@@ -99,30 +111,30 @@ class KtorInventoryCreatorTest {
     }
 
     @Test
-    @Acceptance("AC-004", "AC-005")
-    fun createInventory_rejectsMalformedHttp200AsDecodeFailure() = runBlocking {
-        listOf(
-            "not-json",
-            "[]",
-            """{"data":{}}""",
-            """{"data":{"id":{"invalid":true}}}"""
-        ).forEach { body ->
-            val creator = creator {
-                respond(
-                    content = body,
-                    status = HttpStatusCode.Created,
-                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-                )
-            }
+    fun `200と201の不正応答_有効なdata_idがなくデコード失敗になる`() = runBlocking {
+        listOf(HttpStatusCode.OK, HttpStatusCode.Created).forEach { status ->
+            listOf(
+                "not-json",
+                "[]",
+                """{"data":{}}""",
+                """{"data":{"id":{"invalid":true}}}"""
+            ).forEach { body ->
+                val creator = creator {
+                    respond(
+                        content = body,
+                        status = status,
+                        headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                    )
+                }
 
-            assertEquals(CreateInventoryResult.DecodeFailure, creator.createInventory("Valid"))
-            creator.close()
+                assertEquals(CreateInventoryResult.DecodeFailure, creator.createInventory("Valid"))
+                creator.close()
+            }
         }
     }
 
     @Test
-    @Acceptance("AC-005")
-    fun createInventory_mapsTransportFailureWithoutRetrying() = runBlocking {
+    fun `通信失敗_在庫作成がネットワーク失敗になり再送しない`() = runBlocking {
         var requestCount = 0
         val creator = creator {
             requestCount += 1
@@ -135,8 +147,7 @@ class KtorInventoryCreatorTest {
     }
 
     @Test
-    @Acceptance("AC-005")
-    fun createInventory_rethrowsCancellation() = runBlocking {
+    fun `キャンセル例外_在庫作成が例外を再送出する`() = runBlocking {
         val creator = creator { throw CancellationException("cancelled") }
 
         try {
@@ -150,8 +161,7 @@ class KtorInventoryCreatorTest {
     }
 
     @Test
-    @Acceptance("AC-006")
-    fun createInventory_withMissingTokenFailsBeforeNetworking() = runBlocking {
+    fun `トークン欠落_通信前に設定失敗になる`() = runBlocking {
         var requestCount = 0
         val client = HttpClient(MockEngine { requestCount += 1; error("must not call network") })
         val creator = KtorInventoryCreator(
@@ -169,8 +179,7 @@ class KtorInventoryCreatorTest {
     }
 
     @Test
-    @Acceptance("AC-006")
-    fun createInventory_withNonHttpsBaseUrlFailsBeforeNetworking() = runBlocking {
+    fun `HTTPS以外のベースURL_通信前に設定失敗になる`() = runBlocking {
         var requestCount = 0
         val client = HttpClient(MockEngine { requestCount += 1; error("must not call network") })
         val creator = KtorInventoryCreator(

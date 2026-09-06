@@ -45,7 +45,14 @@ class KtorInventoryCreator(
         } catch (_: Exception) {
             return CreateInventoryResult.NetworkFailure
         }
-        if (response.status != HttpStatusCode.Created) {
+        // API V2仕様書では作成成功は201 Createdだが、200 OKと正常なdata.idが返ったため、両方を許可する。
+        // TODO: V2作成APIで200と201が返る条件、および仕様書との不一致をZAICOに確認する。
+        // 同一タイトルでも再POSTすると別IDの在庫が作成されることを実測済み。
+        // 201が重複登録を示すという根拠はなく、作成POSTの自動再送は行わない。
+        if (
+            response.status != HttpStatusCode.OK &&
+            response.status != HttpStatusCode.Created
+        ) {
             return CreateInventoryResult.HttpFailure(response.status.value)
         }
         val responseBody = try {

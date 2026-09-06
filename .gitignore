@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Local harness feature artifacts
+/docs/features/zaico-v2-company-initialization/
+/docs/features/zaico_android_codingtest-zaico-api-*/
