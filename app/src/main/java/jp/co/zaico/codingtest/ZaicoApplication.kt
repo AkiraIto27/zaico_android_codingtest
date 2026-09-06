@@ -5,10 +5,10 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import jp.co.zaico.codingtest.data.repository.CompanyRepository
 import jp.co.zaico.codingtest.data.repository.InventoryCreator
-import jp.co.zaico.codingtest.data.repository.InventoryRepository
 import jp.co.zaico.codingtest.data.repository.KtorInventoryCreator
 import jp.co.zaico.codingtest.data.repository.KtorInventoryRepository
 import jp.co.zaico.codingtest.data.remote.KtorInventoryRemoteService
+import jp.co.zaico.codingtest.domain.inventory.InventoryRepository
 import kotlinx.serialization.json.Json
 
 class ZaicoApplication : Application() {

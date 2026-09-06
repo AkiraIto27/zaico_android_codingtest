@@ -1,11 +1,11 @@
 package jp.co.zaico.codingtest.ui.inventory.detail
 
 import androidx.lifecycle.ViewModel
-import jp.co.zaico.codingtest.data.model.Inventory
-import jp.co.zaico.codingtest.data.repository.InventoryRepository
+import jp.co.zaico.codingtest.domain.inventory.Inventory
+import jp.co.zaico.codingtest.domain.inventory.InventoryRepository
 
 /**
- * Loads one inventory for the detail screen.
+ * 詳細画面に表示する在庫を読み込むViewModel。
  *
  * 旧クラス名: `SecondViewModel`
  */

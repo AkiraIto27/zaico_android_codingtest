@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import jp.co.zaico.codingtest.R
-import jp.co.zaico.codingtest.data.model.Inventory
+import jp.co.zaico.codingtest.domain.inventory.Inventory
 
 private object InventoryListDiffCallback : DiffUtil.ItemCallback<Inventory>() {
     override fun areItemsTheSame(oldItem: Inventory, newItem: Inventory): Boolean =
@@ -19,7 +19,7 @@ private object InventoryListDiffCallback : DiffUtil.ItemCallback<Inventory>() {
 }
 
 /**
- * Renders inventory summaries and forwards item selections.
+ * 在庫一覧を表示し、項目の選択を通知するAdapter。
  *
  * 旧クラス名: `MyAdapter`
  */

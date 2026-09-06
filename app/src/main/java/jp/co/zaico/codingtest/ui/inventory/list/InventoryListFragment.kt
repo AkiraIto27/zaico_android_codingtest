@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import jp.co.zaico.codingtest.R
 import jp.co.zaico.codingtest.ZaicoApplication
-import jp.co.zaico.codingtest.data.model.Inventory
+import jp.co.zaico.codingtest.domain.inventory.Inventory
 import jp.co.zaico.codingtest.data.repository.CompanyIdResult
 import jp.co.zaico.codingtest.data.repository.CompanyRepositoryException
 import jp.co.zaico.codingtest.databinding.FragmentInventoryListBinding
@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Inventory list screen.
+ * 在庫一覧画面を表示するFragment。
  *
  * 旧クラス名: `FirstFragment`
  */

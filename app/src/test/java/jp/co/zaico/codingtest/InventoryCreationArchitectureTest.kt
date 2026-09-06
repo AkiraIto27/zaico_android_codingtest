@@ -13,6 +13,29 @@ class InventoryCreationArchitectureTest {
         .first { File(it, "settings.gradle.kts").isFile }
 
     @Test
+    fun KDocコメントを確認する_説明文が日本語で記述される() {
+        val kdocPattern = Regex("/\\*\\*(.*?)\\*/", RegexOption.DOT_MATCHES_ALL)
+        val japaneseTextPattern = Regex("[\\u3040-\\u30ff\\u4e00-\\u9fff]")
+        val kdocLines = File(repositoryRoot, "app/src")
+            .walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .flatMap { file ->
+                kdocPattern.findAll(file.readText()).flatMap { comment ->
+                    comment.groupValues[1].lineSequence()
+                        .map { it.trim().removePrefix("*").trim() }
+                        .filter { it.isNotEmpty() }
+                        .asIterable()
+                }
+            }
+            .toList()
+
+        assertTrue("KDocコメントが見つかりません", kdocLines.isNotEmpty())
+        kdocLines.forEach { line ->
+            assertTrue("KDocの説明文が日本語ではありません: $line", japaneseTextPattern.containsMatchIn(line))
+        }
+    }
+
+    @Test
     fun 作成画面の構造を確認する_Activityに入力フォームと登録操作を配置する() {
         val activityLayout = source("app/src/main/res/layout/activity_inventory_create.xml")
         val fragmentLayout = source("app/src/main/res/layout/fragment_inventory_create.xml")
@@ -105,6 +128,37 @@ class InventoryCreationArchitectureTest {
         assertTrue(policySource.contains("fun selectFirst"))
         assertFalse(policySource.contains("io.ktor"))
         assertFalse(policySource.contains("android."))
+    }
+
+    @Test
+    fun 在庫契約とモデルの配置を確認する_Domain層に定義する() {
+        val domainInventory = source(
+            "app/src/main/java/jp/co/zaico/codingtest/domain/inventory/Inventory.kt"
+        )
+        val domainRepository = source(
+            "app/src/main/java/jp/co/zaico/codingtest/domain/inventory/InventoryRepository.kt"
+        )
+        val dataModel = File(repositoryRoot, "app/src/main/java/jp/co/zaico/codingtest/data/model/Inventory.kt")
+        val dataRepository = File(
+            repositoryRoot,
+            "app/src/main/java/jp/co/zaico/codingtest/data/repository/InventoryRepository.kt"
+        )
+        val dataSourcePaths = listOf(
+            "app/src/main/java/jp/co/zaico/codingtest/data/remote/InventoryRemoteService.kt",
+            "app/src/main/java/jp/co/zaico/codingtest/data/remote/mapper/InventoryResponseMapper.kt",
+            "app/src/main/java/jp/co/zaico/codingtest/data/repository/KtorInventoryRepository.kt"
+        )
+        val dataInventoryType = "jp.co.zaico.codingtest.data." + "model.Inventory"
+
+        assertTrue(domainInventory.contains("package jp.co.zaico.codingtest.domain.inventory"))
+        assertTrue(domainInventory.contains("data class Inventory"))
+        assertTrue(domainRepository.contains("package jp.co.zaico.codingtest.domain.inventory"))
+        assertTrue(domainRepository.contains("interface InventoryRepository"))
+        assertFalse(dataModel.exists())
+        assertFalse(dataRepository.exists())
+        dataSourcePaths.forEach { path ->
+            assertFalse(source(path).contains(dataInventoryType))
+        }
     }
 
     @Test

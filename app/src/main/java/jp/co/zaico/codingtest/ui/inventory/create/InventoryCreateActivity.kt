@@ -7,7 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import jp.co.zaico.codingtest.R
 
 /**
- * Hosts the inventory creation form.
+ * 在庫作成フォームを表示するActivity。
  *
  * 旧クラス名: `AddActivity`
  */

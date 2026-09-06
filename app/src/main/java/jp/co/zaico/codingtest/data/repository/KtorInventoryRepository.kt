@@ -2,9 +2,10 @@ package jp.co.zaico.codingtest.data.repository
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
-import jp.co.zaico.codingtest.data.model.Inventory
 import jp.co.zaico.codingtest.data.remote.InventoryRemoteService
 import jp.co.zaico.codingtest.data.remote.KtorInventoryRemoteService
+import jp.co.zaico.codingtest.domain.inventory.Inventory
+import jp.co.zaico.codingtest.domain.inventory.InventoryRepository
 import kotlinx.serialization.json.Json
 
 class KtorInventoryRepository private constructor(

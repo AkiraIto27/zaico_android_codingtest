@@ -21,7 +21,7 @@ import jp.co.zaico.codingtest.databinding.FragmentInventoryCreateBinding
 import kotlinx.coroutines.launch
 
 /**
- * Inventory creation form and submission feedback.
+ * 在庫作成フォームと登録結果を表示するFragment。
  *
  * 旧クラス名: `AddFragment`
  */

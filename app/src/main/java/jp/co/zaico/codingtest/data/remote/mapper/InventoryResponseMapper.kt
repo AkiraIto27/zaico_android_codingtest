@@ -1,6 +1,6 @@
 package jp.co.zaico.codingtest.data.remote.mapper
 
-import jp.co.zaico.codingtest.data.model.Inventory
+import jp.co.zaico.codingtest.domain.inventory.Inventory
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject

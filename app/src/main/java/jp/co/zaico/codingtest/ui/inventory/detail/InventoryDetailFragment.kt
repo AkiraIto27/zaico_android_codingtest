@@ -7,14 +7,14 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import jp.co.zaico.codingtest.ZaicoApplication
-import jp.co.zaico.codingtest.data.model.Inventory
+import jp.co.zaico.codingtest.domain.inventory.Inventory
 import jp.co.zaico.codingtest.databinding.FragmentInventoryDetailBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Inventory detail screen.
+ * 在庫詳細画面を表示するFragment。
  *
  * 旧クラス名: `SecondFragment`
  */

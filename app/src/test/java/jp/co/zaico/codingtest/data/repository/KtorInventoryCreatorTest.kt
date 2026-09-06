@@ -45,7 +45,7 @@ class KtorInventoryCreatorTest {
         var receivedTitle: String? = null
         val companyRepository = CompanyRepository(
             remote = object : CompanyRemoteService {
-                override suspend fun getCompanyId(): CompanyRemoteResult =
+                override suspend fun getCompanies(): CompanyRemoteResult =
                     CompanyRemoteResult.Success(listOf(CompanyRemoteCompany(321)))
             },
             token = "synthetic-test-token"

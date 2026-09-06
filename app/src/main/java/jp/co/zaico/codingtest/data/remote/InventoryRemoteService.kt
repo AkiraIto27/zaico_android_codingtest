@@ -10,12 +10,12 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
-import jp.co.zaico.codingtest.data.model.Inventory
 import jp.co.zaico.codingtest.data.remote.dto.CreateInventoryRequest
 import jp.co.zaico.codingtest.data.remote.mapper.decodeCreateInventoryResponse
 import jp.co.zaico.codingtest.data.remote.mapper.encodeCreateInventoryRequest
 import jp.co.zaico.codingtest.data.remote.mapper.normalizeInventoryListRoot
 import jp.co.zaico.codingtest.data.remote.mapper.toInventory
+import jp.co.zaico.codingtest.domain.inventory.Inventory
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json

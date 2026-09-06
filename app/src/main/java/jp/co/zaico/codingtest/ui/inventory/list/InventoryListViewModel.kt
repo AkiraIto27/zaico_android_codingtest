@@ -1,11 +1,11 @@
 package jp.co.zaico.codingtest.ui.inventory.list
 
 import androidx.lifecycle.ViewModel
-import jp.co.zaico.codingtest.data.model.Inventory
-import jp.co.zaico.codingtest.data.repository.InventoryRepository
+import jp.co.zaico.codingtest.domain.inventory.Inventory
+import jp.co.zaico.codingtest.domain.inventory.InventoryRepository
 
 /**
- * Loads inventory summaries for the list screen.
+ * 在庫一覧画面に表示する在庫概要を読み込むViewModel。
  *
  * 旧クラス名: `FirstViewModel`
  */

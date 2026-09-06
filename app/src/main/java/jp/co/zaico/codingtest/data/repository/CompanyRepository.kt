@@ -50,7 +50,7 @@ class CompanyRepository internal constructor(
         }
 
         val result = try {
-            when (val remoteResult = remote.getCompanyId()) {
+            when (val remoteResult = remote.getCompanies()) {
                 is CompanyRemoteResult.Success -> when (
                     val selection = CompanySelectionPolicy.selectFirst(
                         remoteResult.companies.map { CompanyCandidate(it.id) }

@@ -24,8 +24,16 @@ internal sealed interface CompanyRemoteResult {
     data object NetworkFailure : CompanyRemoteResult
 }
 
+/**
+ * 拠点一覧をAPIから取得する責務を持つリモートサービス。
+ */
 internal interface CompanyRemoteService {
-    suspend fun getCompanyId(): CompanyRemoteResult
+    /**
+     * APIから拠点一覧を取得する。
+     *
+     * @return 拠点一覧または取得失敗を表す結果。
+     */
+    suspend fun getCompanies(): CompanyRemoteResult
 }
 
 internal class KtorCompanyRemoteService(
@@ -37,7 +45,7 @@ internal class KtorCompanyRemoteService(
 ) : CompanyRemoteService {
     private val normalizedBaseUrl = baseUrl.trimEnd('/')
 
-    override suspend fun getCompanyId(): CompanyRemoteResult {
+    override suspend fun getCompanies(): CompanyRemoteResult {
         val body = try {
             val response = client.get(normalizedBaseUrl + companiesPath) {
                 header(HttpHeaders.Authorization, "Bearer $token")

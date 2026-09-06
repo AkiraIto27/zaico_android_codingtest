@@ -1,7 +1,7 @@
 package jp.co.zaico.codingtest.ui.inventory.create
 
 /**
- * Validation errors for the inventory title.
+ * 在庫タイトルの入力エラー。
  *
  * 旧クラス名: `AddTitleError`
  */
@@ -11,7 +11,7 @@ enum class InventoryCreateTitleError {
 }
 
 /**
- * Request errors exposed by the inventory creation UI.
+ * 在庫作成画面に表示するリクエストエラー。
  *
  * 旧クラス名: `AddRequestError`
  */
@@ -24,7 +24,7 @@ enum class InventoryCreateRequestError {
 }
 
 /**
- * State rendered by the inventory creation screen.
+ * 在庫作成画面に表示するUI状態。
  *
  * 旧クラス名: `AddUiState`
  */

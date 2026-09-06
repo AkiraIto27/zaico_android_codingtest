@@ -9,9 +9,9 @@ import org.junit.runner.RunWith
 import org.junit.Assert.*
 
 /**
- * Instrumented test, which will execute on an Android device.
+ * 計装テストをAndroid端末上で実行する。
  *
- * See [testing documentation](http://d.android.com/tools/testing).
+ * 詳細は[テストドキュメント](http://d.android.com/tools/testing)を参照する。
  */
 @RunWith(AndroidJUnit4::class)
 class ExampleInstrumentedTest {

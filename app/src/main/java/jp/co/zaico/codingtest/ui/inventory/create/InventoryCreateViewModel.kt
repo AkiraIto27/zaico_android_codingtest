@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Owns title validation and inventory creation UI state.
+ * タイトルの入力検証と在庫作成画面のUI状態を管理するViewModel。
  *
  * 旧クラス名: `AddViewModel`
  */
