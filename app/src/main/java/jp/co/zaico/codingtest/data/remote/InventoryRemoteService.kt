@@ -15,11 +15,14 @@ import jp.co.zaico.codingtest.data.remote.mapper.decodeCreateInventoryResponse
 import jp.co.zaico.codingtest.data.remote.mapper.encodeCreateInventoryRequest
 import jp.co.zaico.codingtest.data.remote.mapper.normalizeInventoryListRoot
 import jp.co.zaico.codingtest.data.remote.mapper.toInventory
+import jp.co.zaico.codingtest.di.ApiBaseUrl
+import jp.co.zaico.codingtest.di.ApiToken
 import jp.co.zaico.codingtest.domain.inventory.Inventory
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
+import javax.inject.Inject
 
 internal interface InventoryRemoteService {
     suspend fun getInventories(companyId: Int): List<Inventory>
@@ -27,10 +30,10 @@ internal interface InventoryRemoteService {
     suspend fun getInventory(companyId: Int, inventoryId: Int): Inventory
 }
 
-internal class KtorInventoryRemoteService(
+internal class KtorInventoryRemoteService @Inject constructor(
     private val client: HttpClient,
-    baseUrl: String,
-    private val token: String,
+    @ApiBaseUrl baseUrl: String,
+    @ApiToken private val token: String,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) : InventoryRemoteService, InventoryCreateRemoteService {
     private val normalizedBaseUrl = baseUrl.trimEnd('/')

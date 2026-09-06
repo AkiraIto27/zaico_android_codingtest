@@ -1,18 +1,21 @@
 package jp.co.zaico.codingtest.data.repository
 
-import io.ktor.client.HttpClient
 import jp.co.zaico.codingtest.data.remote.InventoryCreateRemoteResult
 import jp.co.zaico.codingtest.data.remote.InventoryCreateRemoteService
+import jp.co.zaico.codingtest.di.ApiToken
 import jp.co.zaico.codingtest.domain.company.CompanyIdResult
 import jp.co.zaico.codingtest.domain.company.CompanyRepository
 import kotlinx.coroutines.CancellationException
+import javax.inject.Inject
+import javax.inject.Singleton
 
-internal class KtorInventoryCreator(
-    private val client: HttpClient,
-    private val token: String,
+@Singleton
+class KtorInventoryCreator @Inject internal constructor(
+    @ApiToken private val token: String,
     private val companyRepository: CompanyRepository,
     private val remote: InventoryCreateRemoteService
 ) : InventoryCreator {
+
     override suspend fun createInventory(title: String): CreateInventoryResult {
         if (token.isBlank()) {
             return CreateInventoryResult.ConfigurationFailure
@@ -35,9 +38,5 @@ internal class KtorInventoryCreator(
         } catch (cancellation: CancellationException) {
             throw cancellation
         }
-    }
-
-    override fun close() {
-        client.close()
     }
 }

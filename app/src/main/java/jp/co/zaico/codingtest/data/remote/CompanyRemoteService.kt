@@ -7,6 +7,9 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import jp.co.zaico.codingtest.data.remote.dto.CompanyRemoteCompany
+import jp.co.zaico.codingtest.di.ApiBaseUrl
+import jp.co.zaico.codingtest.di.ApiToken
+import jp.co.zaico.codingtest.di.CompaniesPath
 import jp.co.zaico.codingtest.data.remote.CompanyRemoteResult.DecodeFailure
 import jp.co.zaico.codingtest.data.remote.CompanyRemoteResult.NetworkFailure
 import kotlinx.coroutines.CancellationException
@@ -15,6 +18,7 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import javax.inject.Inject
 
 internal sealed interface CompanyRemoteResult {
     data class Success(val companies: List<CompanyRemoteCompany>) : CompanyRemoteResult
@@ -36,12 +40,12 @@ internal interface CompanyRemoteService {
     suspend fun getCompanies(): CompanyRemoteResult
 }
 
-internal class KtorCompanyRemoteService(
+internal class KtorCompanyRemoteService @Inject constructor(
     private val client: HttpClient,
-    baseUrl: String,
-    private val token: String,
-    private val companiesPath: String,
-    private val json: Json = Json { ignoreUnknownKeys = true }
+    @ApiBaseUrl baseUrl: String,
+    @ApiToken private val token: String,
+    @CompaniesPath private val companiesPath: String,
+    private val json: Json
 ) : CompanyRemoteService {
     private val normalizedBaseUrl = baseUrl.trimEnd('/')
 

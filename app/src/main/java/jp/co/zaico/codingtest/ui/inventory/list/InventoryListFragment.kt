@@ -7,12 +7,13 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import dagger.hilt.android.AndroidEntryPoint
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import jp.co.zaico.codingtest.R
-import jp.co.zaico.codingtest.ZaicoApplication
 import jp.co.zaico.codingtest.domain.inventory.Inventory
 import jp.co.zaico.codingtest.domain.company.CompanyIdResult
 import jp.co.zaico.codingtest.domain.company.CompanyRepositoryException
@@ -28,9 +29,10 @@ import kotlinx.coroutines.withContext
  *
  * 旧クラス名: `FirstFragment`
  */
+@AndroidEntryPoint
 class InventoryListFragment : Fragment() {
     private var _binding: FragmentInventoryListBinding? = null
-    private lateinit var viewModel: InventoryListViewModel
+    private val viewModel: InventoryListViewModel by viewModels()
     private lateinit var adapter: InventoryListAdapter
     private var loadJob: Job? = null
 
@@ -39,16 +41,15 @@ class InventoryListFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentInventoryListBinding.inflate(inflater, container, false)
-        return requireNotNull(_binding).root
+        val binding = FragmentInventoryListBinding.inflate(inflater, container, false)
+        _binding = binding
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        val binding = _binding ?: return
 
-        viewModel = InventoryListViewModel(
-            (requireActivity().application as ZaicoApplication).createInventoryRepository()
-        )
         val layoutManager = LinearLayoutManager(requireContext())
         val dividerItemDecoration = DividerItemDecoration(requireContext(), layoutManager.orientation)
         adapter = InventoryListAdapter(object : InventoryListAdapter.OnItemClickListener {
@@ -60,7 +61,7 @@ class InventoryListFragment : Fragment() {
                 )
             }
         })
-        requireNotNull(_binding).recyclerView.also {
+        binding.recyclerView.also {
             it.layoutManager = layoutManager
             it.addItemDecoration(dividerItemDecoration)
             it.adapter = adapter
@@ -69,7 +70,7 @@ class InventoryListFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        if (_binding == null || !::viewModel.isInitialized) return
+        if (_binding == null) return
         loadJob?.cancel()
         loadJob = viewLifecycleOwner.lifecycleScope.launch {
             try {

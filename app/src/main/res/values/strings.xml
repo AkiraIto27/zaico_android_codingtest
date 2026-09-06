@@ -2,6 +2,11 @@
     <string name="app_name">zaico codingtest</string>
     <string name="inventory_list_label">在庫一覧</string>
     <string name="inventory_detail_label">在庫詳細</string>
+    <string name="inventory_detail_id_label">ID</string>
+    <string name="inventory_detail_image_label">在庫画像</string>
+    <string name="inventory_detail_title_label">タイトル</string>
+    <string name="inventory_detail_quantity_label">数量</string>
+    <string name="inventory_detail_no_image_description">在庫画像なし</string>
     <string name="inventory_create_title_label">在庫タイトル</string>
     <string name="inventory_create_add">在庫を追加</string>
     <string name="inventory_create_submit">登録</string>

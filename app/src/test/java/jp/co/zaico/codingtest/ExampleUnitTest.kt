@@ -9,6 +9,7 @@ import org.junit.Assert.*
  *
  * 詳細は[テストドキュメント](http://d.android.com/tools/testing)を参照する。
  */
+@Suppress("NonAsciiCharacters", "TestFunctionName")
 class ExampleUnitTest {
     @Test
     fun `加算を実行する_合計が4になる`() {

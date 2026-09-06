@@ -38,6 +38,7 @@ import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("NonAsciiCharacters", "TestFunctionName")
 class KtorInventoryCreatorTest {
 
     @Test
@@ -63,7 +64,6 @@ class KtorInventoryCreatorTest {
             }
         }
         val creator = KtorInventoryCreator(
-            client = client,
             token = "synthetic-test-token",
             companyRepository = companyRepository,
             remote = createRemote
@@ -75,7 +75,7 @@ class KtorInventoryCreatorTest {
         )
         assertEquals(321, receivedCompanyId)
         assertEquals("Injected inventory", receivedTitle)
-        creator.close()
+        client.close()
         assertFalse(client.coroutineContext.isActive)
     }
 
@@ -112,7 +112,7 @@ class KtorInventoryCreatorTest {
             assertEquals(setOf("title"), body.keys)
             assertEquals("  New inventory  ", body.getValue("title").jsonPrimitive.content)
             assertFalse((fixture.lastPostRequest?.body as TextContent).text.contains("synthetic-test-token"))
-            fixture.creator.close()
+            fixture.client.close()
         }
     }
 
@@ -131,7 +131,7 @@ class KtorInventoryCreatorTest {
             )
             assertEquals(1, fixture.getCount)
             assertEquals(1, fixture.postCount)
-            fixture.creator.close()
+            fixture.client.close()
         }
     }
 
@@ -159,7 +159,7 @@ class KtorInventoryCreatorTest {
                 )
                 assertEquals(1, fixture.getCount)
                 assertEquals(1, fixture.postCount)
-                fixture.creator.close()
+                fixture.client.close()
             }
         }
     }
@@ -182,7 +182,7 @@ class KtorInventoryCreatorTest {
             )
             assertEquals(1, fixture.getCount)
             assertEquals(1, fixture.postCount)
-            fixture.creator.close()
+            fixture.client.close()
         }
 
         listOf(HttpStatusCode.OK, HttpStatusCode.Created).forEach { status ->
@@ -205,7 +205,7 @@ class KtorInventoryCreatorTest {
                 )
                 assertEquals(1, fixture.getCount)
                 assertEquals(1, fixture.postCount)
-                fixture.creator.close()
+                fixture.client.close()
             }
         }
 
@@ -218,7 +218,7 @@ class KtorInventoryCreatorTest {
         )
         assertEquals(1, networkFixture.getCount)
         assertEquals(1, networkFixture.postCount)
-        networkFixture.creator.close()
+        networkFixture.client.close()
 
         val cancellationFixture = fixture(post = {
             throw CancellationException("synthetic cancellation")
@@ -231,7 +231,7 @@ class KtorInventoryCreatorTest {
         } finally {
             assertEquals(1, cancellationFixture.getCount)
             assertEquals(1, cancellationFixture.postCount)
-            cancellationFixture.creator.close()
+            cancellationFixture.client.close()
         }
 
         listOf(
@@ -253,14 +253,14 @@ class KtorInventoryCreatorTest {
             assertEquals(expected, fixture.creator.createInventory("Valid"))
             assertEquals(1, fixture.getCount)
             assertEquals(0, fixture.postCount)
-            fixture.creator.close()
+            fixture.client.close()
         }
 
         val blankToken = fixture(token = "   ")
         assertEquals(CreateInventoryResult.ConfigurationFailure, blankToken.creator.createInventory("Valid"))
         assertEquals(0, blankToken.getCount)
         assertEquals(0, blankToken.postCount)
-        blankToken.creator.close()
+        blankToken.client.close()
     }
 
     @Test
@@ -522,7 +522,6 @@ class KtorInventoryCreatorTest {
         )
         fixture = Fixture(
             creator = KtorInventoryCreator(
-                client = client,
                 token = token,
                 companyRepository = companyRepository,
                 remote = jp.co.zaico.codingtest.data.remote.KtorInventoryRemoteService(

@@ -7,6 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import org.junit.Test
 
+@Suppress("NonAsciiCharacters", "TestFunctionName")
 class InventoryQuantityMappingTest {
 
     @Test

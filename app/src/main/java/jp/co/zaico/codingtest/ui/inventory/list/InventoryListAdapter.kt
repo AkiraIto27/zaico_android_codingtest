@@ -1,13 +1,11 @@
 package jp.co.zaico.codingtest.ui.inventory.list
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import jp.co.zaico.codingtest.R
+import jp.co.zaico.codingtest.databinding.ItemInventoryBinding
 import jp.co.zaico.codingtest.domain.inventory.Inventory
 
 private object InventoryListDiffCallback : DiffUtil.ItemCallback<Inventory>() {
@@ -26,22 +24,23 @@ private object InventoryListDiffCallback : DiffUtil.ItemCallback<Inventory>() {
 class InventoryListAdapter(
     private val itemClickListener: OnItemClickListener
 ) : ListAdapter<Inventory, InventoryListAdapter.ViewHolder>(InventoryListDiffCallback) {
-    class ViewHolder(view: View) : RecyclerView.ViewHolder(view)
+    class ViewHolder(val binding: ItemInventoryBinding) : RecyclerView.ViewHolder(binding.root)
 
     interface OnItemClickListener {
         fun itemClick(item: Inventory)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_inventory, parent, false)
-        return ViewHolder(view)
+        val binding = ItemInventoryBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return ViewHolder(binding)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = getItem(position)
-        (holder.itemView.findViewById<View>(R.id.textView_id) as TextView).text = item.id.toString()
-        (holder.itemView.findViewById<View>(R.id.textView_title) as TextView).text = item.title
-        holder.itemView.setOnClickListener { itemClickListener.itemClick(item) }
+        holder.binding.apply {
+            textViewId.text = item.id.toString()
+            textViewTitle.text = item.title
+            root.setOnClickListener { itemClickListener.itemClick(item) }
+        }
     }
 }

@@ -14,6 +14,7 @@ import org.junit.Assert.*
  * 詳細は[テストドキュメント](http://d.android.com/tools/testing)を参照する。
  */
 @RunWith(AndroidJUnit4::class)
+@Suppress("NonAsciiCharacters", "TestFunctionName")
 class ExampleInstrumentedTest {
     @Test
     fun `アプリコンテキストを取得する_パッケージ名が一致する`() {

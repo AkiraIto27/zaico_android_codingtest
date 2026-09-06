@@ -5,6 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
+@Suppress("NonAsciiCharacters", "TestFunctionName")
 class InventoryCreationArchitectureTest {
 
     private val repositoryRoot: File = generateSequence(
