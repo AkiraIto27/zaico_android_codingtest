@@ -2,4 +2,17 @@
     <string name="app_name">zaico codingtest</string>
     <string name="first_fragment_label">在庫一覧</string>
     <string name="second_fragment_label">在庫詳細</string>
+    <string name="add_title_label">在庫タイトル</string>
+    <string name="add_inventory">在庫を追加</string>
+    <string name="add_submit">登録</string>
+    <string name="add_submitting">登録中</string>
+    <string name="add_title_required">タイトルを入力してください</string>
+    <string name="add_title_too_long">タイトルは200文字以内で入力してください</string>
+    <string name="add_configuration_error">APIトークンが設定されていません</string>
+    <string name="add_api_error">在庫を登録できませんでした</string>
+    <string name="add_response_error">サーバーからの応答を確認できませんでした</string>
+    <string name="add_network_error">通信に失敗しました。接続を確認して再試行してください</string>
+    <string name="add_success">在庫を登録しました</string>
+    <string name="inventory_load_error">在庫一覧を取得できませんでした</string>
+    <string name="company_list_empty">拠点一覧が空です。Zaicoダッシュボードからテスト用拠点を1つ登録してください。登録された最新の拠点に紐づく在庫情報が表示されるようになります。</string>
 </resources>

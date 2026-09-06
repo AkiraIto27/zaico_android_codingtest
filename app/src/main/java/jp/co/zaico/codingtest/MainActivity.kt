@@ -7,6 +7,9 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import jp.co.zaico.codingtest.databinding.ActivityMainBinding
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -18,6 +21,11 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        val companyRepository = (application as ZaicoApplication).companyRepository
+        lifecycleScope.launch(Dispatchers.IO) {
+            companyRepository.getCompanyId()
+        }
 
         setSupportActionBar(binding.toolbar)
 
